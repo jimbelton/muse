@@ -16,19 +16,23 @@ os.chdir(localDir)
 sharedFiles = {}
 remoteFiles = {}
 localFiles  = {}
+missingRoot = None;
 
 for dirPath, subDirs, files in os.walk("."):
     relPath = dirPath[1:]
     
     if not os.path.isdir(remoteDir + relPath):
-        if len(files) == 0 or relPath.endswith("/.mediaartlocal"):
+        if relPath.endswith("/.mediaartlocal"):
             continue
             
-        print remoteDir + " does not contain directory " + relPath
-        continue
+        if missingRoot == None or not relPath.startswith(missingRoot):
+            print remoteDir + " does not contain directory " + relPath
+            missingRoot = relPath
+    else:
+        missingRoot = None
         
     for file in files:
-        if not os.path.isfile(remoteDir + relPath + "/" + file):
+        if not missingRoot and not os.path.isfile(remoteDir + relPath + "/" + file):
             print remoteDir + relPath + " does not contain file " + file
 
 sys.exit(0)
