@@ -13,7 +13,7 @@ if not os.path.exists(localDir):
     os.mkdir(local)
   
 os.chdir(localDir)
-sharedFiles = {}
+allFiles    = {}
 remoteFiles = {}
 localFiles  = {}
 missingRoot = None;
@@ -32,7 +32,16 @@ for dirPath, subDirs, files in os.walk("."):
         missingRoot = None
         
     for file in files:
-        if not missingRoot and not os.path.isfile(remoteDir + relPath + "/" + file):
-            print remoteDir + relPath + " does not contain file " + file
-
+        if file.endswith(".jpg"):
+            continue
+            
+        if file in allFiles:
+            print "File " + file + " found in " + localDir + relPath + " and " + allFiles[file]
+        else:
+            allFiles[file] = localDir + relPath
+        
+        if not os.path.isfile(remoteDir + relPath + "/" + file):
+            if not missingRoot:
+                print remoteDir + relPath + " does not contain file " + file
+                
 sys.exit(0)
