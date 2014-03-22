@@ -1,19 +1,24 @@
 #!/usr/bin/python
 
+import filecmp
 import os
 import sys
 
-remoteDir = "/mnt/wdtvlivehub/Music"
-localDir  = os.path.join(os.path.expanduser("~"), "Music")
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "lib"))
+from pydub import AudioSegment
 
-if not os.path.exists(remoteDir):
+remote = "/mnt/wdtvlivehub/Music"
+local  = os.path.join(os.path.expanduser("~"), "Music")
+
+if not os.path.exists(remote):
     os.mkdir(remote)
     
-if not os.path.exists(localDir):
+if not os.path.exists(local):
     os.mkdir(local)
   
-os.chdir(localDir)
+os.chdir(local)
 allFiles    = {}
+filesBySize = {}
 remoteFiles = {}
 localFiles  = {}
 missingRoot = None;
@@ -21,12 +26,12 @@ missingRoot = None;
 for dirPath, subDirs, files in os.walk("."):
     relPath = dirPath[1:]
     
-    if not os.path.isdir(remoteDir + relPath):
+    if not os.path.isdir(remote + relPath):
         if relPath.endswith("/.mediaartlocal"):
             continue
             
         if missingRoot == None or not relPath.startswith(missingRoot):
-            print remoteDir + " does not contain directory " + relPath
+            print remote + " does not contain directory " + relPath
             missingRoot = relPath
     else:
         missingRoot = None
@@ -36,12 +41,21 @@ for dirPath, subDirs, files in os.walk("."):
             continue
             
         if file in allFiles:
-            print "File " + file + " found in " + localDir + relPath + " and " + allFiles[file]
+            fileStat = os.stat(dirPath + "/" + file)
+            prevStat = os.stat(allFiles[file] + "/" + file)
+            
+            if fileStat.st_size == prevStat.st_size:
+                if filecmp.cmp(dirPath + "/" + file, allFiles[file] + "/" + file):
+                    print "Identical file " + file + " found in " + local + relPath + " and " + allFiles[file]
+                else:
+                    print "Same size file " + file + " found in " + local + relPath + " and " + allFiles[file]
+            else:
+                print "Same name file " + file + " found in " + local + relPath + " and " + allFiles[file]
         else:
-            allFiles[file] = localDir + relPath
+            allFiles[file] = local + relPath
         
-        if not os.path.isfile(remoteDir + relPath + "/" + file):
+        if not os.path.isfile(remote + relPath + "/" + file):
             if not missingRoot:
-                print remoteDir + relPath + " does not contain file " + file
+                print remote + relPath + " does not contain file " + file
                 
 sys.exit(0)
