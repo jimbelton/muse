@@ -1,11 +1,36 @@
 #!/usr/bin/python
 
+"""muse - Muse Audio File Manager
+
+Usage:
+muse -c|--cmp file1 file2
+muse -c|--cmp library1 library2
+muse -h|--help
+muse --version
+
+Options:
+    -c --cmp      Compare two files or libraries
+    -h --help     Show this screen
+       --version  Show version
+
+"""
+
 import filecmp
 import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "lib"))
-from pydub import AudioSegment
+import docopt
+#from pydub import AudioSegment
+
+arguments = docopt.docopt(__doc__, version='1.0')
+
+def compareAudio(file1, file2):
+#    if file1.endswith(".mp3"):
+#        return AudioSegment.from_mp3(file1) == AudioSegment.from_mp3(file1)
+        
+    print "Cannot determine the file type of " + file1
+    return filecmp.cmp(file1, file2)
 
 remote = "/mnt/wdtvlivehub/Music"
 local  = os.path.join(os.path.expanduser("~"), "Music")
@@ -45,8 +70,8 @@ for dirPath, subDirs, files in os.walk("."):
             prevStat = os.stat(allFiles[file] + "/" + file)
             
             if fileStat.st_size == prevStat.st_size:
-                if filecmp.cmp(dirPath + "/" + file, allFiles[file] + "/" + file):
-                    print "Identical file " + file + " found in " + local + relPath + " and " + allFiles[file]
+                if compareAudio(dirPath + "/" + file, allFiles[file] + "/" + file):
+                    print "Identical audio found in " + local + relPath + file + " and " + allFiles[file]
                 else:
                     print "Same size file " + file + " found in " + local + relPath + " and " + allFiles[file]
             else:
