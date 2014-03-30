@@ -2,11 +2,9 @@
 
 """muse - Muse Audio File Manager
 
-Usage:
-muse -c|--cmp file1 file2
-muse -c|--cmp library1 library2
-muse -h|--help
-muse --version
+Usage: muse -c|--cmp <path1> <path2>
+       muse -h|--help
+       muse --version
 
 Options:
     -c --cmp      Compare two files or libraries
@@ -21,7 +19,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "lib"))
 import docopt
-#from pydub import AudioSegment
+import muse
 
 arguments = docopt.docopt(__doc__, version='1.0')
 
@@ -29,9 +27,21 @@ def compareAudio(file1, file2):
 #    if file1.endswith(".mp3"):
 #        return AudioSegment.from_mp3(file1) == AudioSegment.from_mp3(file1)
         
-    print "Cannot determine the file type of " + file1
+    print "Cannot determine the file type of " + file1 + "; falling back to direct file comparison"
     return filecmp.cmp(file1, file2)
 
+print arguments
+path1 = arguments['<path1>'] if '<path1>' in arguments else os.path.join(os.path.expanduser("~"), "Music")
+path2 = arguments['<path2>'] if '<path2>' in arguments else "/mnt/wdtvlivehub/Music"
+
+if "--cmp" in arguments and os.path.isfile(path1):
+    if compareAudio(path1, path2):
+        print "Audio portions equate in files %s and %s" % (path1, path2)
+    else:
+        print "Audio portions differ in files %s and %s" % (path1, path2)
+        
+    sys.exit(0)
+        
 remote = "/mnt/wdtvlivehub/Music"
 local  = os.path.join(os.path.expanduser("~"), "Music")
 
