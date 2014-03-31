@@ -18,10 +18,10 @@ import os
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "lib"))
-import docopt
-import muse
+from docopt       import docopt
+from muse.factory import createAudioFile
 
-arguments = docopt.docopt(__doc__, version='1.0')
+arguments = docopt(__doc__, version='1.0')
 
 def compareAudio(file1, file2):
 #    if file1.endswith(".mp3"):
@@ -30,12 +30,15 @@ def compareAudio(file1, file2):
     print "Cannot determine the file type of " + file1 + "; falling back to direct file comparison"
     return filecmp.cmp(file1, file2)
 
-print arguments
+#print arguments
 path1 = arguments['<path1>'] if '<path1>' in arguments else os.path.join(os.path.expanduser("~"), "Music")
 path2 = arguments['<path2>'] if '<path2>' in arguments else "/mnt/wdtvlivehub/Music"
 
 if "--cmp" in arguments and os.path.isfile(path1):
-    if compareAudio(path1, path2):
+    file1 = createAudioFile(path1, {})
+    file2 = createAudioFile(path2, {})
+    
+    if file1.compareAudio(file2):
         print "Audio portions equate in files %s and %s" % (path1, path2)
     else:
         print "Audio portions differ in files %s and %s" % (path1, path2)
