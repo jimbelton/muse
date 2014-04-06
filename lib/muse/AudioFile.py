@@ -10,10 +10,12 @@ class AudioFile:
         self.filePath = filePath
         self.fileName = os.path.basename(filePath)
         self.options  = options if options != None else {}
+        self.audioMd5 = None
         
         if not os.path.isfile(filePath):
             raise ValueError("AudioFile: '" + filePath + "' is not a file")
 
-    #def compareAudio(self, other):
-    #    print "Cannot determine the file type of " + self.filePath
-    #    return filecmp.cmp(self.filePath, other.filePath)
+    def compareAudio(self, other):
+        self.read()
+        other.read()
+        return self.audioMd5 == other.audioMd5
