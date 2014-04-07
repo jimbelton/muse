@@ -4,18 +4,14 @@ import filecmp
 import os
 import re
 #import sys
+from muse.MuseFile import MuseFile
 
-class AudioFile:
+class AudioFile(MuseFile):
     def __init__(self, filePath, options):
-        self.filePath = filePath
-        self.fileName = os.path.basename(filePath)
-        self.options  = options if options != None else {}
+        MuseFile.__init__(self, filePath, options)
         self.audioMd5 = None
-        
-        if not os.path.isfile(filePath):
-            raise ValueError("AudioFile: '" + filePath + "' is not a file")
 
     def compareAudio(self, other):
-        self.read()
-        other.read()
+        self.readFile()
+        other.readFile()
         return self.audioMd5 == other.audioMd5
