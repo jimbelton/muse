@@ -3,7 +3,6 @@
 import filecmp
 import os
 import re
-#import sys
 
 class MuseFileError(Exception):
     def __init__(self, filePath, offset, message):
@@ -30,7 +29,7 @@ class MuseFile:
             
         self.stream = open(self.filePath, "rb")
             
-    def read(self, length, message, options):
+    def read(self, length, message, options = {}):
         if (self.stream == None):
             raise MuseFileError(self.filePath, 0, "Attempt to read file when it's not open")
 

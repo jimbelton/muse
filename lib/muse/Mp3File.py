@@ -1,9 +1,10 @@
 #!/usr/bin/python
 
-import filecmp
+import md5
 import os
 import struct
 import sys
+
 from muse.AudioFile import AudioFile
 
 class Mp3FileError(Exception):
@@ -24,7 +25,6 @@ class Mp3File(AudioFile):
             length <<= 7
             length +=  ord(char)
             
-        print "Length from ID3v2Tag: %d" % (length)
         body = self.read(length, "ID3v2 tag body", {})
         
     def readFile(self):
@@ -38,8 +38,7 @@ class Mp3File(AudioFile):
             header = self.read(4, "header tag", {'eof': 'true'})
             
             if len(header) == 0:    # EOF
-                self.close()
-                return
+                raise MuseFileError(self.filePath, self.stream.tell(), "EOF without any mp3 content")
             
             if (header[:3] == "ID3"):
                 self.readID3v2Tag(header)
@@ -47,8 +46,12 @@ class Mp3File(AudioFile):
                 
             words = struct.unpack(">l", header)
             
-            if (words[0] & 0xFFFF0000) == 0xFFFB0000:
-                print "Found an mp3 header at offset %d" % (self.stream.tell())
-                sys.exit(0)
+            if (words[0] & 0xFFFF0000) != 0xFFFB0000:
+                raise MuseFileError(self.filePath, self.stream.tell(), "Unknown tag '%08x'" % (words[0]))
                 
-            raise MuseFileError(self.filePath, self.stream.tell(), "Unknown tag '%08x'" % (words[0]))
+            self.audioMd5 = md5.new(header)
+            remainder = self.stream.read()
+            self.audioMd5.update(remainder)
+            break
+            
+        self.close()
