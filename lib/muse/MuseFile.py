@@ -14,15 +14,22 @@ class MuseFileError(Exception):
         return  "%s(%d): %s" % (self.filePath, self.offset, self.message)
 
 class MuseFile:
-    def __init__(self, filePath, options):
+    def __init__(self, filePath, options = {}):
         self.filePath = filePath
         self.fileName = os.path.basename(filePath)
-        self.options  = options if options != None else {}
+        #self.options  = options if options != None else {}
         self.stream   = None
+        self.stat     = None
         
         if not os.path.isfile(filePath):
             raise ValueError("MuseFile: '" + filePath + "' is not a file")
+    
+    def getSize(self):
+        if (self.stat == None):
+            self.stat = os.stat(self.filePath)
             
+        return self.stat.st_size
+        
     def open(self):
         if self.stream != None:
             raise MuseFileError(self.filePath, 0, "Attempt to open file when it's already open")

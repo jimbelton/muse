@@ -10,6 +10,16 @@ class AudioFile(MuseFile):
         MuseFile.__init__(self, filePath, options)
         self.audioMd5 = None
 
+    # Override this base method in derived classes. This method includes the entire file in the audioMd5 checksum
+    #
+    def readFile(self):
+        if self.audioMd5:
+            return
+
+        self.open()
+        self.audioMd5 = md5.new(self.stream.read())
+        self.close()
+
     def compareAudio(self, other):
         self.readFile()
         other.readFile()

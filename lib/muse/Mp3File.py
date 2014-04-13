@@ -32,7 +32,6 @@ class Mp3File(AudioFile):
             return
 
         self.open()
-        self.offset = 0
         
         while True:
             header = self.read(4, "header tag", {'eof': 'true'})

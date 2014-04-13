@@ -22,21 +22,12 @@ from docopt       import docopt
 from muse.factory import createAudioFile
 
 arguments = docopt(__doc__, version='1.0')
-
-def compareAudio(file1, file2):
-#    if file1.endswith(".mp3"):
-#        return AudioSegment.from_mp3(file1) == AudioSegment.from_mp3(file1)
-        
-    print "Cannot determine the file type of " + file1 + "; falling back to direct file comparison"
-    return filecmp.cmp(file1, file2)
-
-#print arguments
 path1 = arguments['<path1>'] if '<path1>' in arguments else os.path.join(os.path.expanduser("~"), "Music")
 path2 = arguments['<path2>'] if '<path2>' in arguments else "/mnt/wdtvlivehub/Music"
 
 if "--cmp" in arguments and os.path.isfile(path1):
-    file1 = createAudioFile(path1, {})
-    file2 = createAudioFile(path2, {})
+    file1 = createAudioFile(path1)
+    file2 = createAudioFile(path2)
     
     if file1.compareAudio(file2):
         print "Audio portions equate in files %s and %s" % (path1, path2)
@@ -75,22 +66,24 @@ for dirPath, subDirs, files in os.walk("."):
         missingRoot = None
         
     for file in files:
-        if file.endswith(".jpg"):
+        filePath  = dirPath + "/" + file
+        audioFile = createAudioFile(filePath)
+        
+        if not audioFile:
             continue
             
         if file in allFiles:
-            fileStat = os.stat(dirPath + "/" + file)
-            prevStat = os.stat(allFiles[file] + "/" + file)
-            
-            if fileStat.st_size == prevStat.st_size:
-                if compareAudio(dirPath + "/" + file, allFiles[file] + "/" + file):
-                    print "Identical audio found in " + local + relPath + file + " and " + allFiles[file]
+            otherFile = allFiles[file]
+
+            if audioFile.getSize() == otherFile.getSize():
+                if audioFile.compareAudio(otherFile):
+                    print "Identical audio in files " + audioFile.filePath + " and " + otherFile.filePath
                 else:
-                    print "Same size file " + file + " found in " + local + relPath + " and " + allFiles[file]
+                    print "Same sized files " + audioFile.filePath + " and " + otherFile.filePath
             else:
-                print "Same name file " + file + " found in " + local + relPath + " and " + allFiles[file]
+                print "Same named files " + audioFile.filePath + " and " + otherFile.filePath
         else:
-            allFiles[file] = local + relPath
+            allFiles[filePath] = audioFile
         
         if not os.path.isfile(remote + relPath + "/" + file):
             if not missingRoot:
