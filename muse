@@ -83,7 +83,7 @@ for dirPath, subDirs, files in os.walk("."):
             else:
                 print "Same named files " + audioFile.filePath + " and " + otherFile.filePath
         else:
-            allFiles[filePath] = audioFile
+            allFiles[file] = audioFile
         
         if not os.path.isfile(remote + relPath + "/" + file):
             if not missingRoot:
