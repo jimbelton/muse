@@ -2,14 +2,17 @@
 
 """muse - Muse Audio File Manager
 
-Usage: muse -c|--cmp <path1> <path2>
+Usage: muse -c|--cmp [[<path1>] <path2>]
+       muse -d|--dedup [-n] [<path1>]
        muse -h|--help
        muse --version
 
 Options:
-    -c --cmp      Compare two files or libraries
-    -h --help     Show this screen
-       --version  Show version
+    -c --cmp       Compare two files or libraries
+    -d --dedup     Searches for and removes duplicate files in a libary (default: ~/Music)
+    -h --help      Shows this screen
+    -n --noaction  For the dedup command; just tells you what it would do
+       --version   Shows the version
 
 """
 
@@ -22,10 +25,14 @@ from docopt       import docopt
 from muse.factory import createAudioFile
 
 arguments = docopt(__doc__, version='1.0')
-path1 = arguments['<path1>'] if '<path1>' in arguments else os.path.join(os.path.expanduser("~"), "Music")
-path2 = arguments['<path2>'] if '<path2>' in arguments else "/mnt/wdtvlivehub/Music"
+path1 = arguments['<path1>'] if arguments['<path1>'] else os.path.join(os.path.expanduser("~"), "Music")
 
-if "--cmp" in arguments and os.path.isfile(path1):
+if arguments['--cmp']:
+    path2 = arguments['<path2>'] if arguments['<path2>'] else "/mnt/wdtvlivehub/Music"
+else:
+    path2 = None
+
+if arguments['--cmp'] and os.path.isfile(path1):
     file1 = createAudioFile(path1)
     file2 = createAudioFile(path2)
     
@@ -35,17 +42,14 @@ if "--cmp" in arguments and os.path.isfile(path1):
         print "Audio portions differ in files %s and %s" % (path1, path2)
         
     sys.exit(0)
-        
-remote = "/mnt/wdtvlivehub/Music"
-local  = os.path.join(os.path.expanduser("~"), "Music")
 
-if not os.path.exists(remote):
-    os.mkdir(remote)
+if not os.path.exists(path1):
+    os.mkdir(path1)
     
-if not os.path.exists(local):
-    os.mkdir(local)
+if arguments['--cmp'] and not os.path.exists(path2):
+    os.mkdir(path2)
   
-os.chdir(local)
+os.chdir(path1)
 allFiles    = {}
 filesBySize = {}
 remoteFiles = {}
@@ -55,12 +59,12 @@ missingRoot = None;
 for dirPath, subDirs, files in os.walk("."):
     relPath = dirPath[1:]
     
-    if not os.path.isdir(remote + relPath):
+    if path2 and not os.path.isdir(path2 + relPath):
         if relPath.endswith("/.mediaartlocal"):
             continue
             
         if missingRoot == None or not relPath.startswith(missingRoot):
-            print remote + " does not contain directory " + relPath
+            print path2 + " does not contain directory " + relPath
             missingRoot = relPath
     else:
         missingRoot = None
@@ -71,7 +75,7 @@ for dirPath, subDirs, files in os.walk("."):
         
         if not audioFile:
             continue
-            
+
         if file in allFiles:
             otherFile = allFiles[file]
 
@@ -85,8 +89,8 @@ for dirPath, subDirs, files in os.walk("."):
         else:
             allFiles[file] = audioFile
         
-        if not os.path.isfile(remote + relPath + "/" + file):
+        if path2 and not os.path.isfile(path2 + relPath + "/" + file):
             if not missingRoot:
-                print remote + relPath + " does not contain file " + file
+                print path2 + relPath + " does not contain file " + file
                 
 sys.exit(0)
