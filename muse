@@ -13,7 +13,6 @@ Options:
     -h --help      Shows this screen
     -n --noaction  For the dedup command; just tells you what it would do
        --version   Shows the version
-
 """
 
 import filecmp
@@ -35,12 +34,7 @@ else:
 if arguments['--cmp'] and os.path.isfile(path1):
     file1 = createAudioFile(path1)
     file2 = createAudioFile(path2)
-    
-    if file1.compareAudio(file2):
-        print "Audio portions equate in files %s and %s" % (path1, path2)
-    else:
-        print "Audio portions differ in files %s and %s" % (path1, path2)
-        
+    file1.isPreferredTo(file2)
     sys.exit(0)
 
 if not os.path.exists(path1):

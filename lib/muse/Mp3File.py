@@ -19,19 +19,22 @@ class Mp3FileError(Exception):
 class Mp3File(AudioFile):
     def readID3v2Tag(self, header):
         header += self.read(6, "ID3v2 header", {})
-        length  = 0
+        self.md5.update(header)
+        length = 0
         
         for char in header[6:]:
             length <<= 7
             length +=  ord(char)
             
         body = self.read(length, "ID3v2 tag body", {})
+        self.md5.update(body)
         
     def readFile(self):
-        if self.audioMd5:
+        if self.md5:
             return
 
         self.open()
+        self.md5 = md5.new()
         
         while True:
             header = self.read(4, "header tag", {'eof': 'true'})
@@ -48,8 +51,10 @@ class Mp3File(AudioFile):
             if (words[0] & 0xFFFF0000) != 0xFFFB0000:
                 raise MuseFileError(self.filePath, self.stream.tell(), "Unknown tag '%08x'" % (words[0]))
                 
+            self.md5.update(header)
             self.audioMd5 = md5.new(header)
-            remainder = self.stream.read()
+            remainder     = self.stream.read()
+            self.md5.update(remainder)
             self.audioMd5.update(remainder)
             break
             

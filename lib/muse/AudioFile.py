@@ -8,18 +8,23 @@ from muse.MuseFile import MuseFile
 class AudioFile(MuseFile):
     def __init__(self, filePath, options = {}):
         MuseFile.__init__(self, filePath, options)
-        self.audioMd5 = None
+        self.md5 = None
 
     # Override this base method in derived classes. This method includes the entire file in the audioMd5 checksum
     #
     def readFile(self):
-        if self.audioMd5:
+        if self.md5:
             return
 
         self.open()
         self.md5      = md5.new(self.stream.read())
         self.audioMd5 = self.md5
         self.close()
+        
+    def compare(self, other):
+        self.readFile()
+        other.readFile()
+        return self.md5.digest() == other.md5.digest()
 
     def compareAudio(self, other):
         self.readFile()
@@ -31,7 +36,10 @@ class AudioFile(MuseFile):
         
         if self.getSize() == other.getSize():
             if self.compareAudio(other):
-                print "Identical audio in files " + self.filePath + " and " + other.filePath
+                if self.compare(other):
+                    print "Identical files " + self.filePath + " and " + other.filePath
+                else:
+                    print "Identical audio in files " + self.filePath + " and " + other.filePath
             else:
                 print "Same sized files " + self.filePath + " and " + other.filePath
         else:
