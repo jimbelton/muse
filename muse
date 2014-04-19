@@ -75,19 +75,14 @@ for dirPath, subDirs, files in os.walk("."):
         
         if not audioFile:
             continue
+            
+        key = file.lower()
 
-        if file in allFiles:
-            otherFile = allFiles[file]
-
-            if audioFile.getSize() == otherFile.getSize():
-                if audioFile.compareAudio(otherFile):
-                    print "Identical audio in files " + audioFile.filePath + " and " + otherFile.filePath
-                else:
-                    print "Same sized files " + audioFile.filePath + " and " + otherFile.filePath
-            else:
-                print "Same named files " + audioFile.filePath + " and " + otherFile.filePath
+        if key in allFiles:
+            otherFile = allFiles[key]
+            audioFile.isPreferredTo(otherFile)
         else:
-            allFiles[file] = audioFile
+            allFiles[key] = audioFile
         
         if path2 and not os.path.isfile(path2 + relPath + "/" + file):
             if not missingRoot:

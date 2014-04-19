@@ -17,10 +17,22 @@ class AudioFile(MuseFile):
             return
 
         self.open()
-        self.audioMd5 = md5.new(self.stream.read())
+        self.md5      = md5.new(self.stream.read())
+        self.audioMd5 = self.md5
         self.close()
 
     def compareAudio(self, other):
         self.readFile()
         other.readFile()
         return self.audioMd5.digest() == other.audioMd5.digest()
+
+    def isPreferredTo(self, other, options = None):
+        options = options if options else self.options
+        
+        if self.getSize() == other.getSize():
+            if self.compareAudio(other):
+                print "Identical audio in files " + self.filePath + " and " + other.filePath
+            else:
+                print "Same sized files " + self.filePath + " and " + other.filePath
+        else:
+            print "Same named files " + self.filePath + " and " + other.filePath

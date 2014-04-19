@@ -17,7 +17,7 @@ class MuseFile:
     def __init__(self, filePath, options = {}):
         self.filePath = filePath
         self.fileName = os.path.basename(filePath)
-        #self.options  = options if options != None else {}
+        self.options  = options
         self.stream   = None
         self.stat     = None
         
