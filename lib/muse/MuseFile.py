@@ -16,7 +16,6 @@ class MuseFileError(Exception):
 class MuseFile:
     def __init__(self, filePath, options = {}):
         self.filePath = filePath
-        self.fileName = os.path.basename(filePath)
         self.options  = options
         self.stream   = None
         self.stat     = None
@@ -24,11 +23,20 @@ class MuseFile:
         if not os.path.isfile(filePath):
             raise ValueError("MuseFile: '" + filePath + "' is not a file")
     
-    def getSize(self):
-        if (self.stat == None):
+    def getStat(self):
+        if not self.stat:
             self.stat = os.stat(self.filePath)
-            
-        return self.stat.st_size
+
+        return self.stat
+        
+    def getCreationTime(self):
+        return self.getStat().st_ctime
+        
+    def getModificationTime(self):
+        return self.getStat().st_mtime
+        
+    def getSize(self):
+        return self.getStat().st_size
         
     def open(self):
         if self.stream != None:
