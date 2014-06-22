@@ -21,8 +21,10 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "lib"))
 from docopt       import docopt
-from muse.factory import createAudioFile
+from muse.Factory import createAudioFile
+from muse.Options import options
 
+options["warning"] = True
 arguments = docopt(__doc__, version='1.0')
 path1 = arguments['<path1>'] if arguments['<path1>'] else os.path.join(os.path.expanduser("~"), "Music")
 

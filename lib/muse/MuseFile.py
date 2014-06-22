@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import filecmp
 import os
 import re
