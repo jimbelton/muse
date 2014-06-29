@@ -9,8 +9,8 @@ class AudioFile(MuseFile):
     dirPattern  = re.compile(r'(?:\./)?(?:([^/])/)?(?:([^/]+)/)?(?:.+/)?([^/]*)?$')
     filePattern = re.compile(r'(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:.*-\s+)?(.+)\..+$')
     
-    def __init__(self, filePath, options = {}):
-        MuseFile.__init__(self, filePath, options)
+    def __init__(self, filePath):
+        MuseFile.__init__(self, filePath)
         self.md5 = None
         
         # Determine meta-data from file path
@@ -70,9 +70,7 @@ class AudioFile(MuseFile):
         other.readFile()
         return self.audioMd5.digest() == other.audioMd5.digest()
 
-    def isPreferredTo(self, other, options = None):
-        options = options if options else self.options
-        
+    def isPreferredTo(self, other):
         if self.getSize() == other.getSize():
             if self.compareAudio(other):
                 if self.compare(other):

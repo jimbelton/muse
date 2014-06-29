@@ -5,6 +5,7 @@
 Usage: muse -c|--cmp [[<path1>] <path2>]
        muse -d|--dedup [-n] [<path1>]
        muse -h|--help
+       muse -t|--tags [<path1>]
        muse --version
 
 Options:
@@ -12,6 +13,7 @@ Options:
     -d --dedup     Searches for and removes duplicate files in a libary (default: ~/Music)
     -h --help      Shows this screen
     -n --noaction  For the dedup command; just tells you what it would do
+    -t --tags      List the tags of files or libraries
        --version   Shows the version
 """
 
@@ -39,6 +41,10 @@ if arguments['--cmp'] and os.path.isfile(path1):
     file1.isPreferredTo(file2)
     sys.exit(0)
 
+if arguments['--tags'] and os.path.isfile(path1):
+    file1 = createAudioFile(path1)
+    sys.exit(0)
+    
 if not os.path.exists(path1):
     os.mkdir(path1)
     

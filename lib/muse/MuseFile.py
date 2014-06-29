@@ -12,9 +12,8 @@ class MuseFileError(Exception):
         return  "%s(%d): %s" % (self.filePath, self.offset, self.message)
 
 class MuseFile:
-    def __init__(self, filePath, options = {}):
+    def __init__(self, filePath):
         self.filePath = filePath
-        self.options  = options
         self.stream   = None
         self.stat     = None
         
