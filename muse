@@ -43,6 +43,11 @@ if arguments['--cmp'] and os.path.isfile(path1):
 
 if arguments['--tags'] and os.path.isfile(path1):
     file1 = createAudioFile(path1)
+    file1.readFile()
+    
+    for frameId in file1.frames.keys():
+        print frameId + ":" + file1.frames[frameId]
+
     sys.exit(0)
     
 if not os.path.exists(path1):

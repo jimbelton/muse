@@ -10,7 +10,7 @@ def bigEndianInteger(byteString):
     integer = 0
     
     for byte in byteString:
-        integer = integer * 8 + byte
+        integer = integer * 8 + ord(byte)
     
     return integer
 
@@ -31,6 +31,12 @@ class Mp3File(AudioFile):
         
         return actual
         
+    def expectPadding(self, padding):
+        for paddingChar in padding:
+            self.expect("padding byte", ord(paddingChar), 0)
+            
+        return padding
+        
     def require(self, description, actual, expected):
         if actual != expected:
             sys.exit("error: %s(%d): %s was %s but required %s" % (self.filePath, self.stream.tell(), description, actual, expected))
@@ -44,17 +50,52 @@ class Mp3File(AudioFile):
         
         return actual
 
-    def readFromTag(self, length):
+    def readFromTag(self, length, message):
         assert length <= self.tagLength
         self.tagLength -= length
-        return self.read(length)
+        data = self.read(length, message)
+        self.md5.update(data)
+        return data
+        
+    def readID3v2Frame(self):
+        frameHeader = self.readFromTag(10, "ID3v2 frame header")
+        
+        if ord(frameHeader[:1]) == 0:
+            self.expectPadding(frameHeader[1:])
+            return
+            
+        frameId         = frameHeader[:4]
+        frameBodyLength = bigEndianInteger(frameHeader[4:8])
+        frameFlags      = bigEndianInteger(frameHeader[9:10])
+        self.require("frame compression flag", frameFlags & 0x80, 0)
+        self.require("frame encryption flag",  frameFlags & 0x40, 0)
+        
+        if frameFlags & 0x20:
+            self.readFromTag(1, "ID3v2 frame group identifier byte")
+            
+        frameBody = self.readFromTag(frameBodyLength, "ID3v2 %s frame body" % (frameId))
+            
+        if frameId[0] == "T" or frameId == "IPLS":
+            encoding = ord(frameBody[0])
+            self.requireMember("encoding descriptor for %s frame" % (frameId), encoding, {0, 1})
+            
+            if encoding == 0:
+                value = frameBody[1:].decode("iso-8859-1", errors="strict")
+            else:
+                value = frameBody[1:].decode("utf_16",     errors="strict")
+                
+        else:
+            value = frameBody
+            
+        self.frames[frameId] = value
 
     def readID3v2Tag(self, header):
-        header += self.read(6, "ID3v2 header", {})
+        header += self.read(6, "ID3v2 header")
         self.md5.update(header)
         self.id3v2version = self.expect("version", "ID3v2.%d.%d" % (ord(header[3]), ord(header[4])), "ID3v2.3.0")
         tagFlags = ord(header[5])
         self.unsynchronization = tagFlags & 0x80
+        self.require("unsynchronization is not yet supported", self.unsynchronization, 0)
         self.expect("experimental flag", tagFlags & 0x20, 0)
         self.require("undefined tag flags", tagFlags & 0x1F, 0)
         self.tagLength = 0
@@ -65,10 +106,18 @@ class Mp3File(AudioFile):
             
         # If the extended header flag is set
         if tagFlags & 0x40:
-            extendedHeader       = readFromTag(10)
-            extendedHeaderLength = this.expectedSet("extended head length", bigEndianInteger(extendedHeader[:4]), {6, 10})
+            extendedHeader       = self.readFromTag(10, "ID3v2 tag extended header")
+            extendedHeaderLength = self.expectedSet("extended head length", bigEndianInteger(extendedHeader[:4]), {6, 10})
             
-        body = self.read(self.tagLength, "ID3v2 tag body", {})
+            if extendedHeaderLength == 10:
+                crc = self.readFromTag(4, "ID3v2 tag CRC")
+                
+        self.frames = {}
+
+        while self.tagLength >= 10:
+            self.readID3v2Frame()
+
+        body = self.readFromTag(self.tagLength, "ID3v2 padding")
         self.md5.update(body)
         
     def readFile(self):
@@ -79,7 +128,7 @@ class Mp3File(AudioFile):
         self.md5 = md5.new()
         
         while True:
-            header = self.read(4, "header tag", {'eof': 'true'})
+            header = self.read(4, "header tag", {'eof'})
             
             if len(header) == 0:    # EOF
                 raise MuseFileError(self.filePath, self.stream.tell(), "EOF without any mp3 content")
