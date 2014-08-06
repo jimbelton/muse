@@ -60,5 +60,11 @@ class MuseFile:
         raise MuseFileError(self.filePath, self.stream.tell(), "EOF: " + message)
 
     def close(self):
-        self.stream.close()
+        if self.stream:
+            self.stream.close()
+            
         self.stream = None
+
+    def remove(self):
+        self.close()
+        os.remove(self.filePath)

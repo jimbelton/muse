@@ -3,18 +3,21 @@
 """muse - Muse Audio File Manager
 
 Usage: muse -c|--cmp [[<path1>] <path2>]
-       muse -d|--dedup [-n] [<path1>]
+       muse -d|--dedup [-f|-n] [<path1>]
        muse -h|--help
+       muse -r|--reconcile [<path1>]
        muse -t|--tags [<path1>]
        muse --version
 
 Options:
-    -c --cmp       Compare two files or libraries
-    -d --dedup     Searches for and removes duplicate files in a libary (default: ~/Music)
-    -h --help      Shows this screen
-    -n --noaction  For the dedup command; just tells you what it would do
-    -t --tags      List the tags of files or libraries
-       --version   Shows the version
+    -c --cmp        Compare two files or libraries
+    -d --dedup      Searches for and removes duplicate files in a libary (default: ~/Music)
+    -f --force      Force deduplication even if files are different sizes
+    -h --help       Shows this screen
+    -n --noaction   For the dedup command; just tells you what it would do
+    -r --reconcile  Reconcile directories, file names and tags of files or libraries
+    -t --tags       List the tags of files or libraries
+       --version    Shows the version
 """
 
 import filecmp
@@ -26,27 +29,33 @@ from docopt       import docopt
 from muse.Factory import createAudioFile
 from muse.Options import options
 
-options["warning"] = True
 arguments = docopt(__doc__, version='1.0')
 path1 = arguments['<path1>'] if arguments['<path1>'] else os.path.join(os.path.expanduser("~"), "Music")
+options["warning"] = True
+options["force"  ] = arguments['--force']
 
 if arguments['--cmp']:
     path2 = arguments['<path2>'] if arguments['<path2>'] else "/mnt/wdtvlivehub/Music"
 else:
     path2 = None
 
-if arguments['--cmp'] and os.path.isfile(path1):
-    file1 = createAudioFile(path1)
-    file2 = createAudioFile(path2)
-    file1.isPreferredTo(file2)
-    sys.exit(0)
-
-if arguments['--tags'] and os.path.isfile(path1):
-    file1 = createAudioFile(path1)
-    file1.readFile()
+if os.path.isfile(path1):
+    if arguments['--cmp']:
+        file1 = createAudioFile(path1)
+        file2 = createAudioFile(path2)
+        file1.isPreferredTo(file2)
+        
+    elif arguments['--reconcile']:
+        file1 = createAudioFile(path1)
+        file1.readFile()
+        file1.reconcile()
     
-    for frameId in file1.frames.keys():
-        print frameId + ":" + file1.frames[frameId]
+    elif arguments['--tags']:
+        file1 = createAudioFile(path1)
+        file1.readFile()
+        
+        for frameId in file1.frames.keys():
+            print frameId + ":" + file1.frames[frameId]
 
     sys.exit(0)
     
@@ -87,7 +96,21 @@ for dirPath, subDirs, files in os.walk("."):
 
         if key in allFiles:
             otherFile = allFiles[key]
-            audioFile.isPreferredTo(otherFile)
+            score     = audioFile.isPreferredTo(otherFile)
+            
+            if arguments["--noaction"]:
+                if score < 0:
+                    print "%s is prefered to %s by %d points" % (file.filePath, otherFile.filePath, -score)
+                elif score > 0:
+                    print "%s is prefered to %s by %d points" % (otherFile.filePath, file.filePath, -score)
+            
+            elif score < 0:
+                otherFile.remove()
+            elif score > 0:
+                file.remove()
+            else:
+                print "Can't choose between %s and %s (try -fn to see what force would do)" % (ile.filePath, otherFile.filePath)
+                
         else:
             allFiles[key] = audioFile
         

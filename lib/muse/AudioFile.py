@@ -46,7 +46,16 @@ class AudioFile(MuseFile):
         
         if not match:
             sys.exit("AudioFile: Failed to parse file name " + dirName)
-                
+            
+        self.score = 0
+        
+        if self.dirArtist:
+            self.score += 1 if self.dirLetter and self.dirArtist.startswith(self.dirLetter) else 0
+            self.score += 1 if self.dirArtist == self.fileArtist else 0
+        
+        if self.fileArtist:
+            self.score += 1 if self.dirLetter and self.fileArtist.startswith(self.dirLetter) else 0
+        
         #print "File name: Letter %s Artist %s Album %s Track %s Song %s" % (self.dirLetter, self.fileArtist, self.fileAlbum, self.fileTrack, self.fileTitle)
         
     # Override this base method in derived classes. This method includes the entire file in the audioMd5 checksum
@@ -71,13 +80,21 @@ class AudioFile(MuseFile):
         return self.audioMd5.digest() == other.audioMd5.digest()
 
     def isPreferredTo(self, other):
+        #print "%s %s %s %s %s" % (self.dirLetter, self.dirArtist, self.dirAlbum, self.fileArtist, self.fileTitle)
+        
         if self.getSize() == other.getSize():
             if self.compareAudio(other):
                 if self.compare(other):
                     print "Identical files " + self.filePath + " and " + other.filePath
                 else:
                     print "Identical audio in files " + self.filePath + " and " + other.filePath
+                    
             else:
                 print "Same sized files " + self.filePath + " and " + other.filePath
+            
+            return other.score - self.score 
+             
         else:
             print "Same named files " + self.filePath + " and " + other.filePath
+            return other.score - self.score if getOption('forced', default = False) else 0
+

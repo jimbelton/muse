@@ -148,5 +148,12 @@ class Mp3File(AudioFile):
             self.md5.update(remainder)
             self.audioMd5.update(remainder)
             break
-            
+    
+        #print "'" + self.frames['TPE1'] + "' == '" + (self.dirArtist if self.dirArtist else "") + "'" 
+        self.score += 1 if self.frames['TPE1'] == self.dirArtist  else 0
+        self.score += 1 if self.frames['TPE1'] == self.fileArtist else 0        
+        self.score += 1 if self.frames['TALB'] == self.dirAlbum   else 0
+        self.score += 1 if self.frames['TALB'] == self.fileAlbum  else 0
+        self.score += 1 if self.frames['TRCK'] == self.fileTrack  else 0
+        self.score += 1 if self.frames['TIT2'] == self.fileTitle  else 0
         self.close()
