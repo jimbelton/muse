@@ -2,22 +2,24 @@
 
 """muse - Muse Audio File Manager
 
-Usage: muse -c|--cmp [[<path1>] <path2>]
-       muse -d|--dedup [-f|-n] [<path1>]
+Usage: muse -c|--cmp [[<music>] <backup>]
+       muse -d|--dedup [-f|-n] [<music>]
        muse -h|--help
-       muse -r|--reconcile [<path1>]
-       muse -t|--tags [<path1>]
+       muse -l|--load [<backup> [<music>]]
+       muse -r|--reconcile [<music>]
+       muse -t|--tags [<music>]
        muse --version
 
 Options:
     -c --cmp        Compare two files or libraries
-    -d --dedup      Searches for and removes duplicate files in a libary (default: ~/Music)
+    -d --dedup      Search for and removes duplicate files in a music libary (default: ~/Music)
     -f --force      Force deduplication even if files are different sizes
-    -h --help       Shows this screen
-    -n --noaction   For the dedup command; just tells you what it would do
-    -r --reconcile  Reconcile directories, file names and tags of files or libraries
-    -t --tags       List the tags of files or libraries
-       --version    Shows the version
+    -h --help       Show this screen
+    -l --load       Load music from a backup
+    -n --noaction   Just tells you what a command would do without taking any action
+    -r --reconcile  Reconcile directories, file names and tags of a music file or library
+    -t --tags       List the tags of a music file or library
+       --version    Show the version
 """
 
 import filecmp
@@ -30,28 +32,28 @@ from muse.Factory import createAudioFile
 from muse.Options import options
 
 arguments = docopt(__doc__, version='1.0')
-path1 = arguments['<path1>'] if arguments['<path1>'] else os.path.join(os.path.expanduser("~"), "Music")
+music = arguments['<music>'] if arguments['<music>'] else os.path.join(os.path.expanduser("~"), "Music")
 options["warning"] = True
 options["force"  ] = arguments['--force']
 
 if arguments['--cmp']:
-    path2 = arguments['<path2>'] if arguments['<path2>'] else "/mnt/wdtvlivehub/Music"
+    backup = arguments['<backup>'] if arguments['<backup>'] else "/mnt/wdtvlivehub/Music"
 else:
-    path2 = None
+    backup = None
 
-if os.path.isfile(path1):
+if os.path.isfile(music):
     if arguments['--cmp']:
-        file1 = createAudioFile(path1)
-        file2 = createAudioFile(path2)
+        file1 = createAudioFile(music)
+        file2 = createAudioFile(backup)
         file1.isPreferredTo(file2)
         
     elif arguments['--reconcile']:
-        file1 = createAudioFile(path1)
+        file1 = createAudioFile(music)
         file1.readFile()
         file1.reconcile()
     
     elif arguments['--tags']:
-        file1 = createAudioFile(path1)
+        file1 = createAudioFile(music)
         file1.readFile()
         
         for frameId in file1.frames.keys():
@@ -59,13 +61,13 @@ if os.path.isfile(path1):
 
     sys.exit(0)
     
-if not os.path.exists(path1):
-    os.mkdir(path1)
+if not os.path.exists(music):
+    os.mkdir(music)
     
-if arguments['--cmp'] and not os.path.exists(path2):
-    os.mkdir(path2)
+if arguments['--cmp'] and not os.path.exists(backup):
+    os.mkdir(backup)
   
-os.chdir(path1)
+os.chdir(music)
 allFiles    = {}
 filesBySize = {}
 remoteFiles = {}
@@ -75,12 +77,12 @@ missingRoot = None;
 for dirPath, subDirs, files in os.walk("."):
     relPath = dirPath[1:]
     
-    if path2 and not os.path.isdir(path2 + relPath):
+    if backup and not os.path.isdir(backup + relPath):
         if relPath.endswith("/.mediaartlocal"):
             continue
             
         if missingRoot == None or not relPath.startswith(missingRoot):
-            print path2 + " does not contain directory " + relPath
+            print backup + " does not contain directory " + relPath
             missingRoot = relPath
     else:
         missingRoot = None
@@ -114,8 +116,8 @@ for dirPath, subDirs, files in os.walk("."):
         else:
             allFiles[key] = audioFile
         
-        if path2 and not os.path.isfile(path2 + relPath + "/" + file):
+        if backup and not os.path.isfile(backup + relPath + "/" + file):
             if not missingRoot:
-                print path2 + relPath + " does not contain file " + file
+                print backup + relPath + " does not contain file " + file
                 
 sys.exit(0)
