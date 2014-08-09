@@ -6,7 +6,7 @@ Usage: muse -c|--cmp [[<music>] <backup>]
        muse -d|--dedup [-f|-n] [<music>]
        muse -h|--help
        muse -l|--load [<backup> [<music>]]
-       muse -r|--reconcile [<music>]
+       muse -r|--reconcile [-n] [<music>]
        muse -t|--tags [<music>]
        muse --version
 
@@ -29,6 +29,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "lib"))
 from docopt       import docopt
 from muse.Factory import createAudioFile
+from muse.Mp3File import Mp3FileError
 from muse.Options import options
 
 arguments = docopt(__doc__, version='1.0')
@@ -49,7 +50,6 @@ if os.path.isfile(music):
         
     elif arguments['--reconcile']:
         file1 = createAudioFile(music)
-        file1.readFile()
         file1.reconcile()
     
     elif arguments['--tags']:
@@ -61,7 +61,7 @@ if os.path.isfile(music):
 
     sys.exit(0)
     
-if not os.path.exists(music):
+if arguments['--cmp'] and not os.path.exists(music):
     os.mkdir(music)
     
 if arguments['--cmp'] and not os.path.exists(backup):
@@ -72,7 +72,7 @@ allFiles    = {}
 filesBySize = {}
 remoteFiles = {}
 localFiles  = {}
-missingRoot = None;
+missingRoot = None
 
 for dirPath, subDirs, files in os.walk("."):
     relPath = dirPath[1:]
@@ -89,35 +89,44 @@ for dirPath, subDirs, files in os.walk("."):
         
     for file in files:
         filePath  = dirPath + "/" + file
-        audioFile = createAudioFile(filePath)
         
-        if not audioFile:
-            continue
-            
-        key = file.lower()
+        try:
+            audioFile = createAudioFile(filePath)
 
-        if key in allFiles:
-            otherFile = allFiles[key]
-            score     = audioFile.isPreferredTo(otherFile)
-            
-            if arguments["--noaction"]:
-                if score < 0:
-                    print "%s is prefered to %s by %d points" % (file.filePath, otherFile.filePath, -score)
-                elif score > 0:
-                    print "%s is prefered to %s by %d points" % (otherFile.filePath, file.filePath, -score)
-            
-            elif score < 0:
-                otherFile.remove()
-            elif score > 0:
-                file.remove()
-            else:
-                print "Can't choose between %s and %s (try -fn to see what force would do)" % (ile.filePath, otherFile.filePath)
+            if not audioFile:
+                continue
                 
-        else:
-            allFiles[key] = audioFile
+            key = file.lower()
+    
+            if key in allFiles:
+                otherFile = allFiles[key]
+                score     = audioFile.isPreferredTo(otherFile)
+                
+                if arguments["--noaction"]:
+                    if score < 0:
+                        print "%s is prefered to %s by %d points" % (file.filePath, otherFile.filePath, -score)
+                    elif score > 0:
+                        print "%s is prefered to %s by %d points" % (otherFile.filePath, file.filePath, -score)
+                
+                elif score < 0:
+                    otherFile.remove()
+                elif score > 0:
+                    file.remove()
+                else:
+                    print "Can't choose between %s and %s (try -fn to see what force would do)" % (ile.filePath, otherFile.filePath)
+                    
+            else:
+                allFiles[key] = audioFile
+            
+            if arguments["--reconcile"]:
+                audioFile.reconcile()
+                
+            if backup and not os.path.isfile(backup + relPath + "/" + file):
+                if not missingRoot:
+                    print backup + relPath + " does not contain file " + file
         
-        if backup and not os.path.isfile(backup + relPath + "/" + file):
-            if not missingRoot:
-                print backup + relPath + " does not contain file " + file
+        except Mp3FileError as error:
+            print "Skipping invalid MP3 file: " + str(error)
+            continue
                 
 sys.exit(0)

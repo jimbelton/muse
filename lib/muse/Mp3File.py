@@ -39,19 +39,22 @@ class Mp3File(AudioFile):
         
     def require(self, description, actual, expected):
         if actual != expected:
-            sys.exit("error: %s(%d): %s was %s but required %s" % (self.filePath, self.stream.tell(), description, actual, expected))
+            raise Mp3FileError(self.filePath, self.stream.tell(), "%s was %s but required %s" % (description, actual, expected))
         
         return actual
         
     def requireMember(self, description, actual, expectedSet):
         if not actual in expectedSet:
-            sys.exit("error: %s(%d): %s was %s but required to be in %s" 
-                     % (self.filePath, self.stream.tell(), description, actual, expectedSet))
+            raise Mp3FileError(self.filePath, self.stream.tell(), 
+                               "%s was %s but required to be in %s"  % (description, actual, expectedSet))
         
         return actual
 
     def readFromTag(self, length, message):
-        assert length <= self.tagLength
+        if length > self.tagLength:
+            raise Mp3FileError(self.filePath, self.stream.tell(), 
+                               "%s: length to read %d exceeds remaining tag length %d" % (message, length, self.tagLength))
+                               
         self.tagLength -= length
         data = self.read(length, message)
         self.md5.update(data)
@@ -131,7 +134,7 @@ class Mp3File(AudioFile):
             header = self.read(4, "header tag", {'eof'})
             
             if len(header) == 0:    # EOF
-                raise MuseFileError(self.filePath, self.stream.tell(), "EOF without any mp3 content")
+                raise Mp3FileError(self.filePath, self.stream.tell(), "EOF without any mp3 content")
             
             if (header[:3] == "ID3"):
                 self.readID3v2Tag(header)
@@ -140,9 +143,10 @@ class Mp3File(AudioFile):
             words = struct.unpack(">l", header)
             
             if (words[0] & 0xFFFF0000) != 0xFFFB0000:
-                raise MuseFileError(self.filePath, self.stream.tell(), "Unknown tag '%08x'" % (words[0]))
-                
+                raise Mp3FileError(self.filePath, self.stream.tell(),
+                                   "Unknown tag '%04x%04x'" % ((words[0] >> 4) & 0xFFFF, words[0] & 0xFFFF))
             self.md5.update(header)
+                
             self.audioMd5 = md5.new(header)
             remainder     = self.stream.read()
             self.md5.update(remainder)
@@ -150,10 +154,18 @@ class Mp3File(AudioFile):
             break
     
         #print "'" + self.frames['TPE1'] + "' == '" + (self.dirArtist if self.dirArtist else "") + "'" 
-        self.score += 1 if self.frames['TPE1'] == self.dirArtist  else 0
-        self.score += 1 if self.frames['TPE1'] == self.fileArtist else 0        
-        self.score += 1 if self.frames['TALB'] == self.dirAlbum   else 0
-        self.score += 1 if self.frames['TALB'] == self.fileAlbum  else 0
-        self.score += 1 if self.frames['TRCK'] == self.fileTrack  else 0
-        self.score += 1 if self.frames['TIT2'] == self.fileTitle  else 0
+        self.score += 1 if self.frames.get('TPE1') == self.dirArtist  else 0
+        self.score += 1 if self.frames.get('TPE1') == self.fileArtist else 0        
+        self.score += 1 if self.frames.get('TALB') == self.dirAlbum   else 0
+        self.score += 1 if self.frames.get('TALB') == self.fileAlbum  else 0
+        self.score += 1 if self.frames.get('TRCK') == self.fileTrack  else 0
+        self.score += 1 if self.frames.get('TIT2') == self.fileTitle  else 0
         self.close()
+
+    def reconcile(self):
+        self.readFile()
+        
+        if self.dirArtist == self.fileArtist:
+            if self.frames['TPE1'] != self.fileArtist:
+                print "%s: artist tag %s differs from directory artist %s" % (self.filePath, self.frames['TPE1'], self.fileArtist)
+                    
