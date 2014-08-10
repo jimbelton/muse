@@ -2,12 +2,12 @@
 
 """muse - Muse Audio File Manager
 
-Usage: muse -c|--cmp [[<music>] <backup>]
-       muse -d|--dedup [-f|-n] [<music>]
+Usage: muse -c|--cmp [-q] [[<music>] <backup>]
+       muse -d|--dedup [-q] [-f|-n] [<music>]
        muse -h|--help
-       muse -l|--load [<backup> [<music>]]
-       muse -r|--reconcile [-n] [<music>]
-       muse -t|--tags [<music>]
+       muse -l|--load [-q] [<backup> [<music>]]
+       muse -r|--reconcile [-q] [-n] [<music>]
+       muse -t|--tags [-q] [<music>]
        muse --version
 
 Options:
@@ -17,6 +17,7 @@ Options:
     -h --help       Show this screen
     -l --load       Load music from a backup
     -n --noaction   Just tells you what a command would do without taking any action
+    -q --quiet      Suppress warnings
     -r --reconcile  Reconcile directories, file names and tags of a music file or library
     -t --tags       List the tags of a music file or library
        --version    Show the version
@@ -34,7 +35,7 @@ from muse.Options import options
 
 arguments = docopt(__doc__, version='1.0')
 music = arguments['<music>'] if arguments['<music>'] else os.path.join(os.path.expanduser("~"), "Music")
-options["warning"] = True
+options["warning"] = not arguments['--quiet']
 options["force"  ] = arguments['--force']
 
 if arguments['--cmp']:

@@ -63,15 +63,16 @@ class Mp3File(AudioFile):
         return actual
 
     def readFromTag(self, length, message):
-        if length > self.tagLength:
+        if length > self.tagLeft:
             raise Mp3FileError(self.filePath, self.stream.tell(), 
-                               "%s: length to read %d exceeds remaining tag length %d" % (message, length, self.tagLength))
+                               "%s: length to read %d exceeds remaining tag length %d" % (message, length, self.tagLeft))
                                
-        self.tagLength -= length
+        self.tagLeft -= length
         data = self.read(length, message)
         self.md5.update(data)
         return data
-        
+      
+    # Return: true if read successfully, false if not
     def readID3v2Frame(self):
         frameHeader = self.readFromTag(10, "ID3v2 frame header")
         
@@ -86,11 +87,18 @@ class Mp3File(AudioFile):
         if frameFlags & 0x20:
             self.readFromTag(1, "ID3v2 frame group identifier byte")
             
-        frameBody = self.readFromTag(frameBodyLength, "ID3v2 %s frame body" % (frameId))
+        try:
+            frameBody = self.readFromTag(frameBodyLength, "ID3v2 '%s' frame body" % (frameId))
         
-        if (self.expect("ignoring %s frame with compression flag" % (frameId), frameFlags & 0x80, 0) or 
-            self.expect("ignoring %s frame encryption flag"  % (frameId), frameFlags & 0x40, 0)):
-            return
+        except Mp3FileError as error:
+            if getOption('warning'):
+                sys.stderr.write("warning: " + str(error) + ": skipping remainder of ID3v2 tag\n")
+                
+            return False
+        
+        if (self.expect("ignoring '%s' frame: compression flag" % (frameId), frameFlags & 0x80, 0) or 
+            self.expect("ignoring '%s' frame: encryption flag"  % (frameId), frameFlags & 0x40, 0)):
+            return True
             
         if frameId[0] == "T" or frameId == "IPLS":
             encoding = ord(frameBody[0])
@@ -101,21 +109,26 @@ class Mp3File(AudioFile):
             value = frameBody
             
         self.frames[frameId] = value
+        return True
 
     def readID3v2Tag(self, header):
         header += self.read(6, "ID3v2 header")
         self.md5.update(header)
-        self.id3v2version = self.expectMember("version", "ID3v2.%d.%d" % (ord(header[3]), ord(header[4])), {"ID3v2.3.0", "ID3v2.4.0"})
+        self.id3v2version = self.expectMember("version", "ID3v2.%d.%d" % (ord(header[3]), ord(header[4])),
+                                              {"ID3v2.3.0", "ID3v2.4.0"})
         tagFlags = ord(header[5])
         self.unsynchronization = tagFlags & 0x80
         self.require("unsynchronization is not yet supported", self.unsynchronization, 0)
         self.expect("experimental flag", tagFlags & 0x20, 0)
         self.require("undefined tag flags", tagFlags & 0x1F, 0)
-        self.tagLength = 0
+        self.id3Length = 0
         
         for char in header[6:]:
-            self.tagLength <<= 7
-            self.tagLength +=  ord(char)
+            self.id3Length <<= 7
+            self.id3Length +=  ord(char)
+            
+        self.tagLeft    = self.id3Length
+        self.id3Length += 10
             
         # If the extended header flag is set
         if tagFlags & 0x40:
@@ -127,10 +140,10 @@ class Mp3File(AudioFile):
                 
         self.frames = {}
 
-        while self.tagLength >= 10:
-            self.readID3v2Frame()
+        while self.tagLeft >= 10 and self.readID3v2Frame():
+            pass
 
-        body = self.readFromTag(self.tagLength, "ID3v2 padding")
+        body = self.readFromTag(self.tagLeft, "ID3v2 padding")
         self.md5.update(body)
         
     def readFile(self):
@@ -154,7 +167,8 @@ class Mp3File(AudioFile):
             
             if (words[0] & 0xFFFF0000) != 0xFFFB0000:
                 raise Mp3FileError(self.filePath, self.stream.tell(),
-                                   "Unknown tag '%04x%04x'" % ((words[0] >> 4) & 0xFFFF, words[0] & 0xFFFF))
+                                   "Unknown tag '%04x%04x' (ID3v2 tag length %d)"
+                                   % ((words[0] >> 4) & 0xFFFF, words[0] & 0xFFFF, self.id3Length))
             self.md5.update(header)
                 
             self.audioMd5 = md5.new(header)
