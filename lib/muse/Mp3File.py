@@ -23,7 +23,12 @@ class Mp3FileError(Exception):
     def __str__(self):
         return  "%s(%d): %s" % (self.filePath, self.offset, self.message)
 
+# ID3v2 string encoding types are the byte values 0 ... 3
+# 
+id3v2EncodingToPythonEncoding = ("iso-8859-1", "utf_16", "utf_16_be", "utf_8")
+
 class Mp3File(AudioFile):
+    
     def expect(self, description, actual, expected):
         if getOption('--warning') and actual != expected:
             sys.stderr.out("warning: %s(%d): %s was %s but expected %s" 
@@ -80,12 +85,8 @@ class Mp3File(AudioFile):
             
         if frameId[0] == "T" or frameId == "IPLS":
             encoding = ord(frameBody[0])
-            self.requireMember("encoding descriptor for %s frame" % (frameId), encoding, {0, 1})
-            
-            if encoding == 0:
-                value = frameBody[1:].decode("iso-8859-1", errors="strict")
-            else:
-                value = frameBody[1:].decode("utf_16",     errors="strict")
+            self.requireMember("encoding descriptor for %s frame" % (frameId), encoding, {0, 1, 2, 3})
+            value = frameBody[1:].decode(id3v2EncodingToPythonEncoding[encoding], errors="strict")
                 
         else:
             value = frameBody

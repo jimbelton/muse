@@ -89,7 +89,7 @@ for dirPath, subDirs, files in os.walk("."):
         
     for file in files:
         filePath  = dirPath + "/" + file
-        
+
         try:
             audioFile = createAudioFile(filePath)
 
