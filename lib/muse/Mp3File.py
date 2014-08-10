@@ -30,12 +30,19 @@ id3v2EncodingToPythonEncoding = ("iso-8859-1", "utf_16", "utf_16_be", "utf_8")
 class Mp3File(AudioFile):
     
     def expect(self, description, actual, expected):
-        if getOption('--warning') and actual != expected:
-            sys.stderr.out("warning: %s(%d): %s was %s but expected %s" 
-                           % (self.filePath, self.stream.tell(), description, actual, expected))
+        if getOption('warning') and actual != expected:
+            sys.stderr.write("warning: %s(%d): %s was %s but expected %s\n" 
+                             % (self.filePath, self.stream.tell(), description, actual, expected))
         
         return actual
-        
+    
+    def expectMember(self, description, actual, expectedSet):
+        if getOption('warning') and not actual in expectedSet:
+            sys.stderr.write("warning: %s(%d): %s was %s but required to be in %s\n"
+                             % (self.filePath, self.stream.tell(), description, actual, expectedSet))
+                               
+        return actual                      
+
     def expectPadding(self, padding):
         for paddingChar in padding:
             self.expect("padding byte", ord(paddingChar), 0)
@@ -75,13 +82,15 @@ class Mp3File(AudioFile):
         frameId         = frameHeader[:4]
         frameBodyLength = bigEndianInteger(frameHeader[4:8])
         frameFlags      = bigEndianInteger(frameHeader[9:10])
-        self.require("frame compression flag", frameFlags & 0x80, 0)
-        self.require("frame encryption flag",  frameFlags & 0x40, 0)
         
         if frameFlags & 0x20:
             self.readFromTag(1, "ID3v2 frame group identifier byte")
             
         frameBody = self.readFromTag(frameBodyLength, "ID3v2 %s frame body" % (frameId))
+        
+        if (self.expect("ignoring %s frame with compression flag" % (frameId), frameFlags & 0x80, 0) or 
+            self.expect("ignoring %s frame encryption flag"  % (frameId), frameFlags & 0x40, 0)):
+            return
             
         if frameId[0] == "T" or frameId == "IPLS":
             encoding = ord(frameBody[0])
@@ -96,7 +105,7 @@ class Mp3File(AudioFile):
     def readID3v2Tag(self, header):
         header += self.read(6, "ID3v2 header")
         self.md5.update(header)
-        self.id3v2version = self.expect("version", "ID3v2.%d.%d" % (ord(header[3]), ord(header[4])), "ID3v2.3.0")
+        self.id3v2version = self.expectMember("version", "ID3v2.%d.%d" % (ord(header[3]), ord(header[4])), {"ID3v2.3.0", "ID3v2.4.0"})
         tagFlags = ord(header[5])
         self.unsynchronization = tagFlags & 0x80
         self.require("unsynchronization is not yet supported", self.unsynchronization, 0)
