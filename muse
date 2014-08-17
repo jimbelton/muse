@@ -48,26 +48,26 @@ if os.path.isfile(music):
         file1 = createAudioFile(music)
         file2 = createAudioFile(backup)
         file1.isPreferredTo(file2)
-        
+
     elif arguments['--reconcile']:
         file1 = createAudioFile(music)
         file1.reconcile()
-    
+
     elif arguments['--tags']:
         file1 = createAudioFile(music)
         file1.readFile()
-        
+
         for frameId in file1.frames.keys():
             print frameId + ":" + file1.frames[frameId]
 
     sys.exit(0)
-    
+
 if arguments['--cmp'] and not os.path.exists(music):
     os.mkdir(music)
-    
+
 if arguments['--cmp'] and not os.path.exists(backup):
     os.mkdir(backup)
-  
+
 os.chdir(music)
 allFiles    = {}
 filesBySize = {}
@@ -77,17 +77,17 @@ missingRoot = None
 
 for dirPath, subDirs, files in os.walk("."):
     relPath = dirPath[1:]
-    
+
     if backup and not os.path.isdir(backup + relPath):
         if relPath.endswith("/.mediaartlocal"):
             continue
-            
+
         if missingRoot == None or not relPath.startswith(missingRoot):
             print backup + " does not contain directory " + relPath
             missingRoot = relPath
     else:
         missingRoot = None
-        
+
     for file in files:
         filePath  = dirPath + "/" + file
 
@@ -96,38 +96,38 @@ for dirPath, subDirs, files in os.walk("."):
 
             if not audioFile:
                 continue
-                
+
             key = file.lower()
-    
+
             if key in allFiles:
                 otherFile = allFiles[key]
                 score     = audioFile.isPreferredTo(otherFile)
-                
+
                 if arguments["--noaction"]:
                     if score < 0:
                         print "%s is prefered to %s by %d points" % (file.filePath, otherFile.filePath, -score)
                     elif score > 0:
                         print "%s is prefered to %s by %d points" % (otherFile.filePath, file.filePath, -score)
-                
+
                 elif score < 0:
                     otherFile.remove()
                 elif score > 0:
                     file.remove()
                 else:
                     print "Can't choose between %s and %s (try -fn to see what force would do)" % (ile.filePath, otherFile.filePath)
-                    
+
             else:
                 allFiles[key] = audioFile
-            
+
             if arguments["--reconcile"]:
                 audioFile.reconcile()
-                
+
             if backup and not os.path.isfile(backup + relPath + "/" + file):
                 if not missingRoot:
                     print backup + relPath + " does not contain file " + file
-        
+
         except Mp3FileError as error:
             print "Skipping invalid MP3 file: " + str(error)
             continue
-                
+
 sys.exit(0)
