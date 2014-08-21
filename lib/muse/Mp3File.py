@@ -156,7 +156,6 @@ class Mp3File(AudioFile):
 
         self.open()
         self.md5    = md5.new()
-        self.frames = {}
 
         while True:
             header = self.read(3, "header tag", {'eof'})
@@ -203,7 +202,4 @@ class Mp3File(AudioFile):
 
     def reconcile(self):
         self.readFile()
-
-        if self.dirArtist == self.fileArtist:
-            if self.frames.get('TPE1') != self.fileArtist:
-                print "%s: artist tag %s differs from directory artist %s" % (self.filePath, self.frames.get('TPE1'), self.fileArtist)
+        super(Mp3File, self).reconcile()

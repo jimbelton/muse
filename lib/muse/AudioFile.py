@@ -1,3 +1,4 @@
+import md5
 import os
 import re
 import string
@@ -11,7 +12,8 @@ class AudioFile(MuseFile):
 
     def __init__(self, filePath):
         MuseFile.__init__(self, filePath)
-        self.md5 = None
+        self.md5    = None
+        self.frames = {}
 
         # Determine meta-data from file path
 
@@ -99,4 +101,8 @@ class AudioFile(MuseFile):
             return other.score - self.score if getOption('forced', default = False) else 0
 
     def reconcile(self):
-        sys.stderr.write("%s: warning: %s does not support reconcile\n" % (__file__, self.filePath))
+        self.readFile()
+
+        if self.dirArtist == self.fileArtist:
+            if self.frames.get('TPE1') != self.fileArtist:
+                print "%s: artist tag %s differs from directory/file artist %s" % (self.filePath, self.frames.get('TPE1'), self.fileArtist)

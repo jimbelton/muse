@@ -3,24 +3,25 @@
 """muse - Muse Audio File Manager
 
 Usage: muse -c|--cmp [-q] [[<music>] <backup>]
-       muse -d|--dedup [-q] [-f|-n] [<music>]
+       muse -d|--dedup [-l library] [-q] [-f|-n] [<music>]
        muse -h|--help
-       muse -l|--load [-q] [<backup> [<music>]]
-       muse -r|--reconcile [-q] [-n] [<music>]
-       muse -t|--tags [-q] [<music>]
+       muse -m|--metadata [-l library] [-q] [-n] [<music>]
+       muse -r|--restore [-l library] [-q] [<backup> [<music>]]
+       muse -t|--tags [-m library] [-q] [<music>]
        muse --version
 
 Options:
-    -c --cmp        Compare two files or libraries
-    -d --dedup      Search for and removes duplicate files in a music libary (default: ~/Music)
-    -f --force      Force deduplication even if files are different sizes
-    -h --help       Show this screen
-    -l --load       Load music from a backup
-    -n --noaction   Just tells you what a command would do without taking any action
-    -q --quiet      Suppress warnings
-    -r --reconcile  Reconcile directories, file names and tags of a music file or library
-    -t --tags       List the tags of a music file or library
-       --version    Show the version
+    -c --cmp              Compare two files or libraries
+    -d --dedup            Search for and removes duplicate files in a music libary
+    -f --force            Force deduplication even if files are different sizes
+    -h --help             Show this screen
+    -l --library library  Location of music library if not ~/Music
+    -m --metadata         Modify the metadata of the file or library
+    -n --noaction         Just tells you what a command would do without taking any action
+    -q --quiet            Suppress warnings
+    -r --restore          Restore music from a backup
+    -t --tags             List the tags of file or library
+       --version          Show the version
 """
 
 import filecmp
@@ -34,14 +35,21 @@ from muse.Mp3File import Mp3FileError
 from muse.Options import options
 
 arguments = docopt(__doc__, version='1.0')
-music = arguments['<music>'] if arguments['<music>'] else os.path.join(os.path.expanduser("~"), "Music")
+library   = arguments['--library'] if arguments['--library'] else os.path.join(os.path.expanduser("~"), "Music")
+music     = arguments['<music>']   if arguments['<music>']   else "."
 options["warning"] = not arguments['--quiet']
 options["force"  ] = arguments['--force']
+
+if music.startswith("/") or music.startswith("."):
+    library = None
 
 if arguments['--cmp']:
     backup = arguments['<backup>'] if arguments['<backup>'] else "/mnt/wdtvlivehub/Music"
 else:
     backup = None
+
+if library:
+    os.chdir(library)
 
 if os.path.isfile(music):
     if arguments['--cmp']:
@@ -49,7 +57,7 @@ if os.path.isfile(music):
         file2 = createAudioFile(backup)
         file1.isPreferredTo(file2)
 
-    elif arguments['--reconcile']:
+    elif arguments['--metadata']:
         file1 = createAudioFile(music)
         file1.reconcile()
 
@@ -68,7 +76,6 @@ if arguments['--cmp'] and not os.path.exists(music):
 if arguments['--cmp'] and not os.path.exists(backup):
     os.mkdir(backup)
 
-os.chdir(music)
 allFiles    = {}
 filesBySize = {}
 remoteFiles = {}
@@ -119,7 +126,7 @@ for dirPath, subDirs, files in os.walk("."):
             else:
                 allFiles[key] = audioFile
 
-            if arguments["--reconcile"]:
+            if arguments["--metadata"]:
                 audioFile.reconcile()
 
             if backup and not os.path.isfile(backup + relPath + "/" + file):
