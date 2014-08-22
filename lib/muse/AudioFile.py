@@ -114,8 +114,10 @@ class AudioFile(MuseFile):
             elif self.dirArtist == self.frames.get('TPE1'):
                 if simpleString(self.dirArtist) == simpleString(self.fileArtist):
                     if getOption('noaction'):
-                        print "%s: would rename file artist %s to match directory/tagged artist %s" % (self.filePath, self.fileArtist, self.dirArtist)
+                        print ("%s: would rename file to %s to match directory/tagged artist %s"
+                               % (self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist), self.dirArtist))
                     else:
-                        pass
+                        os.rename(self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist))
                 else:
-                    print "%s: file artist %s differs from directory/tagged artist %s" % (self.filePath, self.fileArtist, self.dirArtist)
+                    print "%s: file artist %s differs from directory/tagged artist %s" % (self.filePath, self.fileArtist,
+                                                                                          self.dirArtist)
