@@ -37,8 +37,10 @@ from muse.Options import options
 arguments = docopt(__doc__, version='1.0')
 library   = arguments['--library'] if arguments['--library'] else os.path.join(os.path.expanduser("~"), "Music")
 music     = arguments['<music>']   if arguments['<music>']   else "."
-options["warning"] = not arguments['--quiet']
-options["force"  ] = arguments['--force']
+
+options["force"   ] = arguments['--force']
+options["noaction"] = arguments['--noaction']
+options["warning" ] = not arguments['--quiet']
 
 if music.startswith("/") or music.startswith("."):
     library = None
@@ -82,7 +84,7 @@ remoteFiles = {}
 localFiles  = {}
 missingRoot = None
 
-for dirPath, subDirs, files in os.walk("."):
+for dirPath, subDirs, files in os.walk(music):
     relPath = dirPath[1:]
 
     if backup and not os.path.isdir(backup + relPath):

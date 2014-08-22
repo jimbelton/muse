@@ -4,7 +4,9 @@ import re
 import string
 import sys
 
-from muse.MuseFile import MuseFile
+from muse.MuseFile        import MuseFile
+from muse.StringFunctions import simpleString
+from muse.Options         import getOption
 
 class AudioFile(MuseFile):
     dirPattern  = re.compile(r'(?:\./)?(?:([^/])/)?(?:([^/]+)/)?(?:.+/)?([^/]*)?$')
@@ -103,6 +105,17 @@ class AudioFile(MuseFile):
     def reconcile(self):
         self.readFile()
 
-        if self.dirArtist == self.fileArtist:
-            if self.frames.get('TPE1') != self.fileArtist:
-                print "%s: artist tag %s differs from directory/file artist %s" % (self.filePath, self.frames.get('TPE1'), self.fileArtist)
+        if self.dirArtist:
+            if self.dirArtist == self.fileArtist:
+                if self.frames.get('TPE1') != self.fileArtist:
+                    print "%s: artist tag %s differs from directory/file artist %s" % (self.filePath, self.frames.get('TPE1'),
+                                                                                       self.fileArtist)
+
+            elif self.dirArtist == self.frames.get('TPE1'):
+                if simpleString(self.dirArtist) == simpleString(self.fileArtist):
+                    if getOption('noaction'):
+                        print "%s: would rename file artist %s to match directory/tagged artist %s" % (self.filePath, self.fileArtist, self.dirArtist)
+                    else:
+                        pass
+                else:
+                    print "%s: file artist %s differs from directory/tagged artist %s" % (self.filePath, self.fileArtist, self.dirArtist)
