@@ -92,6 +92,24 @@ class Library:
     def getSongs(self, artist, album):
         return sorted(self.artists[artist]['albums'][album]['songs'].keys())
 
+    def compare(self, backup):
+        libArtists = self.getArtists()
+        bakArtists = backup.getArtists()
+
+        while len(libArtists) > 0 or len(bakArtists) > 0:
+            if len(bakArtists) == 0 or libArtists[0] < bakArtists[0]:
+                print "Library artist " + libArtists[0] + " not found in backup"
+                libArtists = libArtists[1:]
+                continue
+
+            if len(libArtists) == 0 or bakArtists[0] < libArtists[0]:
+                print "Backup artist " + bakArtists[0] + " not found in library"
+                bakArtists = bakArtists[1:]
+                continue
+
+            libArtists = libArtists[1:]
+            bakArtists = bakArtists[1:]
+
     def display(self):
         print "%-*s | %-*s | %-*s" % (self.artistMaxLen, "Artist or Group", self.albumMaxLen, "Album", self.titleMaxLen, "Song")
         print "%s-+-%s-+-%s" % (self.artistMaxLen * "-", self.albumMaxLen * "-", self.titleMaxLen * "-")

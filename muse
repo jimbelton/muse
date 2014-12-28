@@ -51,7 +51,7 @@ options['fail-on-warning'] = arguments['--fail-on-warning']
 options['fix'            ] = arguments['--fix']
 options['ignore-errors'  ] = arguments['--ignore-errors']
 options['noaction'       ] = arguments['--noaction']
-options['verbose'        ] = not arguments['--verbose']
+options['verbose'        ] = arguments['--verbose']
 options['warning'        ] = not arguments['--quiet']
 
 if music.startswith("/"):
@@ -74,7 +74,10 @@ library = Library(library, music)
 if arguments['--backup'] or arguments['--cmp'] or arguments['--restore']:
     backup = Library(backup, music)
 
-if arguments['--display']:
+if arguments['--cmp']:
+    library.compare(backup)
+
+elif arguments['--display']:
     library.display()
     sys.exit(0)
 
