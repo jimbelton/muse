@@ -11,21 +11,21 @@ audioExtensions   = {"flac", "m3u", "m4a", "ogg", "wma"}
 
 def createAudioFile(filePath):
     match = extensionPattern.match(filePath)
-    
+
     if not match:
         return None
-        
+
     ext = match.group(1).lower()
-        
+
     if ext == "mp3":
         return Mp3File(filePath)
-    
+
     if ext in audioExtensions:
         return AudioFile(filePath)
-        
+
     if ext in ignoredExtensions:
         return None
-        
-    print "muse.createAudioFile: warning: Ignoring unknown file extension '%s' in file %s" % (ext, filePath)
-    ignoredExtensions[ext] = filePath
+
+    sys.stderr.writer("muse.createAudioFile: warning: Ignoring unknown file extension '%s' in file %s" % (ext, filePath))
+    ignoredExtensions.add(ext)
     return None

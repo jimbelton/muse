@@ -2,25 +2,32 @@
 
 """muse - Muse Audio File Manager
 
-Usage: muse -c|--cmp [-q] [[<music>] <backup>]
-       muse -d|--dedup [-l library] [-q] [-f|-n] [<music>]
+Usage: muse -b|--backup [-fn] [-a album][-g artist-or-group] [-t title] [[<music>] <backup>]
+       muse -c|--cmp [-q] [[<music>] <backup>]
+       muse -d|--display [-efimnqv] [-a album] [-g artist-or-group] [-l library] [-t title] [<music>]
        muse -h|--help
-       muse -m|--metadata [-l library] [-q] [-n] [<music>]
        muse -r|--restore [-l library] [-q] [<backup> [<music>]]
-       muse -t|--tags [-m library] [-q] [<music>]
+       muse -s|--sync [-f|-n][-l library] [-q] [<music>]
        muse --version
 
 Options:
+    -b --backup           Back music up
+    -a --album album      Name of the album
     -c --cmp              Compare two files or libraries
-    -d --dedup            Search for and removes duplicate files in a music libary
-    -f --force            Force deduplication even if files are different sizes
+    -d --display          Display the contents of a music libary
+    -e --fail-on-warning  Treat warnings like errors
+    -f --fix              Fix file naming
+    -i --ignore-errors    Ignore errors (treat them like warnings)
+    -g --group group      Name of the artist or group
     -h --help             Show this screen
     -l --library library  Location of music library if not ~/Music
-    -m --metadata         Modify the metadata of the file or library
+    -m --metadata         Include the ID3 frames in a file or library display
     -n --noaction         Just tells you what a command would do without taking any action
     -q --quiet            Suppress warnings
     -r --restore          Restore music from a backup
-    -t --tags             List the tags of file or library
+    -s --sync             Syncronize a the metadata with the filenames
+    -t --title title      Title of song
+    -v --verbose          Display actions taken
        --version          Show the version
 """
 
@@ -31,6 +38,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "lib"))
 from docopt       import docopt
 from muse.Factory import createAudioFile
+from muse.Library import Library
 from muse.Mp3File import Mp3FileError
 from muse.Options import options
 
@@ -38,20 +46,20 @@ arguments = docopt(__doc__, version='1.0')
 library   = arguments['--library'] if arguments['--library'] else os.path.join(os.path.expanduser("~"), "Music")
 music     = arguments['<music>']   if arguments['<music>']   else "."
 
-options["force"   ] = arguments['--force']
-options["noaction"] = arguments['--noaction']
-options["warning" ] = not arguments['--quiet']
+options['fail-on-warning'] = arguments['--fail-on-warning']
+options['fix'            ] = arguments['--fix']
+options['ignore-errors'  ] = arguments['--ignore-errors']
+options['noaction'       ] = arguments['--noaction']
+options['verbose'        ] = not arguments['--verbose']
+options['warning'        ] = not arguments['--quiet']
 
-if music.startswith("/") or music.startswith("."):
+if music.startswith("/"):
     library = None
 
 if arguments['--cmp']:
     backup = arguments['<backup>'] if arguments['<backup>'] else "/mnt/wdtvlivehub/Music"
 else:
     backup = None
-
-if library:
-    os.chdir(library)
 
 if os.path.isfile(music):
     if arguments['--cmp']:
@@ -63,13 +71,6 @@ if os.path.isfile(music):
         file1 = createAudioFile(music)
         file1.reconcile()
 
-    elif arguments['--tags']:
-        file1 = createAudioFile(music)
-        file1.readFile()
-
-        for frameId in file1.frames.keys():
-            print frameId + ":" + file1.frames[frameId]
-
     sys.exit(0)
 
 if arguments['--cmp'] and not os.path.exists(music):
@@ -78,65 +79,10 @@ if arguments['--cmp'] and not os.path.exists(music):
 if arguments['--cmp'] and not os.path.exists(backup):
     os.mkdir(backup)
 
-allFiles    = {}
-filesBySize = {}
-remoteFiles = {}
-localFiles  = {}
-missingRoot = None
+library = Library(library, music)
 
-for dirPath, subDirs, files in os.walk(music):
-    relPath = dirPath[1:]
-
-    if backup and not os.path.isdir(backup + relPath):
-        if relPath.endswith("/.mediaartlocal"):
-            continue
-
-        if missingRoot == None or not relPath.startswith(missingRoot):
-            print backup + " does not contain directory " + relPath
-            missingRoot = relPath
-    else:
-        missingRoot = None
-
-    for file in files:
-        filePath  = dirPath + "/" + file
-
-        try:
-            audioFile = createAudioFile(filePath)
-
-            if not audioFile:
-                continue
-
-            key = file.lower()
-
-            if key in allFiles:
-                otherFile = allFiles[key]
-                score     = audioFile.isPreferredTo(otherFile)
-
-                if arguments["--noaction"]:
-                    if score < 0:
-                        print "%s is prefered to %s by %d points" % (file.filePath, otherFile.filePath, -score)
-                    elif score > 0:
-                        print "%s is prefered to %s by %d points" % (otherFile.filePath, file.filePath, -score)
-
-                elif score < 0:
-                    otherFile.remove()
-                elif score > 0:
-                    file.remove()
-                else:
-                    print "Can't choose between %s and %s (try -fn to see what force would do)" % (ile.filePath, otherFile.filePath)
-
-            else:
-                allFiles[key] = audioFile
-
-            if arguments["--metadata"]:
-                audioFile.reconcile()
-
-            if backup and not os.path.isfile(backup + relPath + "/" + file):
-                if not missingRoot:
-                    print backup + relPath + " does not contain file " + file
-
-        except Mp3FileError as error:
-            print "Skipping invalid MP3 file: " + str(error)
-            continue
+if arguments['--display']:
+    library.display()
+    sys.exit(0)
 
 sys.exit(0)

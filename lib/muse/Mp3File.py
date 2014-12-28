@@ -4,7 +4,7 @@ import struct
 import sys
 
 from muse.AudioFile import AudioFile
-from muse.Options   import getOption
+from muse.Options   import getOption, warn
 
 def bigEndianInteger(byteString):
     integer = 0
@@ -111,6 +111,13 @@ class Mp3File(AudioFile):
             self.requireMember("encoding descriptor for %s frame" % (frameId), encoding, {0, 1, 2, 3})
             value = frameBody[1:].decode(id3v2EncodingToPythonEncoding[encoding], errors="strict")
 
+            if frameId == "TRCK":
+                if value == "":
+                    warn("TRCK tag is present but empty (ignoring it)", self.filePath, self.stream.tell())
+                    return False
+
+                self.track = int(value.split("/")[0])
+
         else:
             value = frameBody
 
@@ -180,9 +187,7 @@ class Mp3File(AudioFile):
                     if len(header) < 2:
                         raise Mp3FileError(self.filePath, self.stream.tell(), "EOF searching for MP3 sync bytes")
 
-                if getOption('warning'):
-                    sys.stderr.write("warning: %s(%d): Found sync bytes after skipping %d bytes\n" %
-                                     (self.filePath, self.stream.tell(), discarded))
+                warn("Found sync bytes after skipping %d bytes\n" % (discarded), self.filePath, self.stream.tell())
 
             self.md5.update(header)
             self.audioMd5 = md5.new(header)
@@ -192,12 +197,12 @@ class Mp3File(AudioFile):
             break
 
         #print "'" + self.frames['TPE1'] + "' == '" + (self.dirArtist if self.dirArtist else "") + "'"
-        self.score += 1 if self.frames.get('TPE1') == self.dirArtist  else 0
-        self.score += 1 if self.frames.get('TPE1') == self.fileArtist else 0
-        self.score += 1 if self.frames.get('TALB') == self.dirAlbum   else 0
-        self.score += 1 if self.frames.get('TALB') == self.fileAlbum  else 0
-        self.score += 1 if self.frames.get('TRCK') == self.fileTrack  else 0
-        self.score += 1 if self.frames.get('TIT2') == self.fileTitle  else 0
+        #self.score += 1 if self.frames.get('TPE1') == self.dirArtist  else 0
+        #self.score += 1 if self.frames.get('TPE1') == self.fileArtist else 0
+        #self.score += 1 if self.frames.get('TALB') == self.dirAlbum   else 0
+        #self.score += 1 if self.frames.get('TALB') == self.fileAlbum  else 0
+        #self.score += 1 if self.frames.get('TRCK') == self.fileTrack  else 0
+        #self.score += 1 if self.frames.get('TIT2') == self.fileTitle  else 0
         self.close()
 
     def reconcile(self):

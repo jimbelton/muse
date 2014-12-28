@@ -5,62 +5,109 @@ import string
 import sys
 
 from muse.MuseFile        import MuseFile
-from muse.StringFunctions import simpleString
-from muse.Options         import getOption
+from muse.StringFunctions import numericPattern, reconcileStrings, safeAppend, simpleString
+from muse.Options         import error, getOption, takeAction, warn
+
+class AudioFileError(Exception):
+    def __init__(self, filePath, message):
+        self.filePath = filePath
+        self.message  = message
+
+    def __str__(self):
+        return  "%s: %s" % (self.filePath, self.message)
 
 class AudioFile(MuseFile):
-    dirPattern  = re.compile(r'(?:\./)?(?:([^/])/)?(?:([^/]+)/)?(?:.+/)?([^/]*)?$')
-    filePattern = re.compile(r'(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:.*-\s+)?(.+)\..+$')
+    splitPattern       = re.compile(r'(.*)/([^/]+?)(\.[^\./]+)?$')
+    dirPattern         = re.compile(r'(?:\./)?(?:([^/])/)?(?:([^/]+)/)?(?:.+/)?([^/]*)?$')
+    filePattern        = re.compile(r'(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:.*-\s+)?(.+)$')
+    artistAlbumPattern = re.compile(r'(\S.*\S)\s+\[(.+)\]$')
+    withArtistPattern  = re.compile(r'(\S.*\S)\s*&\s*(\S.*\S)$')
+#    artistAlbumPattern = re.compile(r'(.*)\s+(.+)$')
 
     def __init__(self, filePath):
         MuseFile.__init__(self, filePath)
+        self.artist = None
+        self.album  = None
         self.md5    = None
         self.frames = {}
 
         # Determine meta-data from file path
 
-        (dirName, fileName) = os.path.split(filePath)
+        match = AudioFile.splitPattern.match(filePath)
+
+        if not match:
+            raise AudioFileError(filePath, "Failed to parse file path")
+
+        (dirName, fileName, fileExt) = match.group(1, 2, 3)
         match = AudioFile.dirPattern.match(dirName)
 
         if not match:
-            sys.exit("AudioFile: Failed to parse directory name " + dirName)
+           raise AudioFileError(filePath, "Failed to parse directory name " + dirName)
 
-        self.dirLetter = match.group(1)
-        self.dirArtist = match.group(2)
-        self.dirAlbum  = match.group(3)
+        (dirLetter, dirArtist, dirAlbum) = match.group(1, 2, 3)
 
         if not match.group(2) and match.group(3):
-            self.dirAlbum  = None
+            dirAlbum  = None
 
-            if self.dirLetter or len(match.group(3)) > 1:
-                self.dirArtist = match.group(3)
+            if dirLetter or len(match.group(3)) > 1:
+                dirArtist = match.group(3)
             else:
-                self.dirLetter = match.group(3)
+                dirLetter = match.group(3)
 
-        #print "Directory: Letter %s Artist %s Album %s" % (self.dirLetter, self.dirArtist, self.dirAlbum)
+        #print "Directory: Letter %s Artist %s Album %s" % (dirLetter, dirArtist, dirAlbum)
         match = AudioFile.filePattern.match(fileName)
 
         if not match:
-            sys.exit("AudioFile: Failed to parse file name " + fileName)
+            raise AudioFileError(filePath, "Failed to parse file name " + fileName)
 
-        self.fileArtist = match.group(1)
-        self.fileAlbum  = match.group(2)
-        self.fileTrack  = match.group(3)
-        self.fileTitle  = match.group(4)
+        (fileArtist, fileAlbum, self.track, self.title) = match.group(1, 2, 3, 4)
+        #print ("File name: Letter %s Artist %s Album %s Track %s Song %s Ext %s" %
+        #       (dirLetter, fileArtist, fileAlbum, self.track, self.title, fileExt))
 
-        if not match:
-            sys.exit("AudioFile: Failed to parse file name " + dirName)
+        self.artist = reconcileStrings(dirArtist, fileArtist, default="Unknown")
 
-        self.score = 0
+        if self.artist == "Unknown":
+            warn("Failed to determine an artist from the filepath", filePath)
 
-        if self.dirArtist:
-            self.score += 1 if self.dirLetter and self.dirArtist.startswith(self.dirLetter) else 0
-            self.score += 1 if self.dirArtist == self.fileArtist else 0
+        elif self.artist == None:
+            self.artist = dirArtist
+            match       = numericPattern.match(fileArtist)
 
-        if self.fileArtist:
-            self.score += 1 if self.dirLetter and self.fileArtist.startswith(self.dirLetter) else 0
+            if match and self.track == None:
+                self.track  = match.group(1)
 
-        #print "File name: Letter %s Artist %s Album %s Track %s Song %s" % (self.dirLetter, self.fileArtist, self.fileAlbum, self.fileTrack, self.fileTitle)
+            else:
+                match = AudioFile.artistAlbumPattern.match(fileArtist)
+
+                if match and reconcileStrings(dirArtist, match.group(1)) and reconcileStrings(dirAlbum, match.group(2)):
+                    fileAlbum   = match.group(2)
+                else:
+                    match = AudioFile.withArtistPattern.match(fileArtist)
+
+                    if (not (match and reconcileStrings(match.group(2), dirArtist)) and
+                        not simpleString(dirArtist) == simpleString(fileArtist).replace("_", " ")):
+                        error("Directory artist '%s' differs from file name artist '%s'" % (dirArtist, fileArtist), filePath)
+
+        self.album = reconcileStrings(dirAlbum, fileAlbum, default="Unknown")
+
+        if self.album == "Unknown":
+            warn("Failed to determine an album from the filepath", filePath)
+
+        elif self.album == None:
+            if fileArtist.isdigit() and reconcileStrings(fileAlbum, dirArtist):
+                self.track = fileArtist
+                self.album = dirAlbum if dirAlbum else "Unknown"
+
+            else:
+                error("Directory album '%s' differs from file name album '%s'" % (dirAlbum, fileAlbum), filePath)
+
+        newPath = ("%s/%s%s%s%s%s"
+                   % (dirName, safeAppend(self.artist, " - ", suppress="Unknown"), safeAppend(self.album, " - ", suppress="Unknown"),
+                      safeAppend(self.track, " - "), self.title, fileExt))
+
+        if getOption("fix", default=False) and newPath != filePath and takeAction("rename %s to %s" % (filePath, newPath)):
+            os.rename(filePath, newPath)
+            os.utime(newPath, None)
 
     # Override this base method in derived classes. This method includes the entire file in the audioMd5 checksum
     #
@@ -102,22 +149,66 @@ class AudioFile(MuseFile):
             print "Same named files " + self.filePath + " and " + other.filePath
             return other.score - self.score if getOption('forced', default = False) else 0
 
+    trackNumberPattern = re.compile(r'(\d+)$')
+
     def reconcile(self):
         self.readFile()
+        simpleArtist = reconcileStrings(self.dirArtist, self.fileArtist, self.frames.get('TPE1'))
+        simpleAlbum  = reconcileStrings(self.dirAlbum,  self.fileAlbum,  self.frames.get('TALB'))
+        simpleTitle  = reconcileStrings(                self.fileTitle,  self.frames.get('TIT2'))
+
+        if (simpleArtist == None):
+            if (self.dirArtist, self.fileArtist, self.frames.get('TPE1')) == (None, None, None):
+                warn("Can't identify an artist", self.filePath)
+            else:
+                warn("Conflicting artists (tag %s)" % (self.frames.get('TPE1')), self.filePath)
+
+            return
+
+        if (simpleAlbum == None):
+            if (self.dirAlbum, self.fileAlbum, self.frames.get('TALB')) == (None, None, None):
+                warn("Can't identify an album", self.filePath)
+            else:
+                warn("Conflicting albums (tag %s)" % (self.frames.get('TALB')), self.filePath)
+
+            return
+
+        if (simpleTitle == None):
+            if (self.fileTitle, self.frames.get('TIT2')) == (None, None, None):
+                warn("Can't identify a title", self.filePath)
+            else:
+                warn("Conflicting titles (tag %s)" % (self.frames.get('TIT2')), self.filePath)
+
+            return
 
         if self.dirArtist:
             if self.dirArtist == self.fileArtist:
                 if self.frames.get('TPE1') != self.fileArtist:
                     print "%s: artist tag %s differs from directory/file artist %s" % (self.filePath, self.frames.get('TPE1'),
                                                                                        self.fileArtist)
-
             elif self.dirArtist == self.frames.get('TPE1'):
                 if simpleString(self.dirArtist) == simpleString(self.fileArtist):
-                    if getOption('noaction'):
-                        print ("%s: would rename file to %s to match directory/tagged artist %s"
-                               % (self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist), self.dirArtist))
-                    else:
+                    if takeAction("rename file %s to %s to match directory/tagged artist %s"
+                                  % (self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist), self.dirArtist)):
                         os.rename(self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist))
+                elif self.fileArtist == None:
+                    if self.fileName.endswith(self.frames.get('TIT2')):
+                        head  = self.fileName[:-len(self.frames.get('TIT2'))].strip()
+                        match = self.trackNumberPattern.match(head)
+
+                        if match:
+                            if int(match.group(1)) == self.track:
+                                toPath = "%s/%s - %d - %s.self.dirName"
+                                if takeAction("rename file %s to %s to match directory/tagged artist %s"
+                                              % (self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist), self.dirArtist)):
+                                    os.rename(self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist))
+
+
+                        print "'" + head + "'"
+                        print ("%s: filename ends with title %s (no file artist; directory/tagged artist %s)"
+                               % (self.filePath, self.frames.get('TIT2'), self.dirArtist))
+                    else:
+                        print "%s: no file artist parsed (directory/tagged artist %s)" % (self.filePath, self.dirArtist)
                 else:
                     print "%s: file artist %s differs from directory/tagged artist %s" % (self.filePath, self.fileArtist,
                                                                                           self.dirArtist)
