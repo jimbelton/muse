@@ -19,7 +19,7 @@ def takeAction(action):
     return True
 
 def formatMessage(type, message, file, line):
-    output = [message, ": "]
+    output = [type, ": "]
 
     if file:
         output.append(file)

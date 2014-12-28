@@ -5,7 +5,7 @@ import string
 import sys
 
 from muse.MuseFile        import MuseFile
-from muse.StringFunctions import numericPattern, reconcileStrings, safeAppend, simpleString
+from muse.StringFunctions import reconcileStrings, safeAppend, simpleString
 from muse.Options         import error, getOption, takeAction, warn
 
 class AudioFileError(Exception):
@@ -20,6 +20,8 @@ class AudioFile(MuseFile):
     splitPattern       = re.compile(r'(.*)/([^/]+?)(\.[^\./]+)?$')
     dirPattern         = re.compile(r'(?:\./)?(?:([^/])/)?(?:([^/]+)/)?(?:.+/)?([^/]*)?$')
     filePattern        = re.compile(r'(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:.*-\s+)?(.+)$')
+    numericPattern     = re.compile(r'(\d+)(?:\.)?\s*(.*)$')
+    #numericPattern     = re.compile(r'(\d+)\s*(.*)$')
     artistAlbumPattern = re.compile(r'(\S.*\S)\s+\[(.+)\]$')
     withArtistPattern  = re.compile(r'(\S.*\S)\s*&\s*(\S.*\S)$')
 #    artistAlbumPattern = re.compile(r'(.*)\s+(.+)$')
@@ -71,16 +73,17 @@ class AudioFile(MuseFile):
 
         elif self.artist == None:
             self.artist = dirArtist
-            match       = numericPattern.match(fileArtist)
+            match       = AudioFile.numericPattern.match(fileArtist)
 
             if match and self.track == None:
                 self.track  = match.group(1)
+                fileArtist  = match.group(2)
 
-            else:
+            if fileArtist:
                 match = AudioFile.artistAlbumPattern.match(fileArtist)
 
                 if match and reconcileStrings(dirArtist, match.group(1)) and reconcileStrings(dirAlbum, match.group(2)):
-                    fileAlbum   = match.group(2)
+                    fileAlbum = match.group(2)
                 else:
                     match = AudioFile.withArtistPattern.match(fileArtist)
 
@@ -94,11 +97,12 @@ class AudioFile(MuseFile):
             warn("Failed to determine an album from the filepath", filePath)
 
         elif self.album == None:
+            self.album = dirAlbum
+
             if fileArtist.isdigit() and reconcileStrings(fileAlbum, dirArtist):
                 self.track = fileArtist
-                self.album = dirAlbum if dirAlbum else "Unknown"
 
-            else:
+            elif not reconcileStrings(fileAlbum, dirArtist):
                 error("Directory album '%s' differs from file name album '%s'" % (dirAlbum, fileAlbum), filePath)
 
         newPath = ("%s/%s%s%s%s%s"

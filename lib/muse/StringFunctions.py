@@ -2,7 +2,6 @@ import filecmp
 import os
 import re
 
-numericPattern = re.compile(r'(\d+)\s*(.*)$')
 articlePattern = re.compile(r'(?:(?:a|an|the) )?(.+)')
 
 def simpleString(string):
