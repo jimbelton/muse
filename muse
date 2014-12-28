@@ -45,6 +45,7 @@ from muse.Options import options
 arguments = docopt(__doc__, version='1.0')
 library   = arguments['--library'] if arguments['--library'] else os.path.join(os.path.expanduser("~"), "Music")
 music     = arguments['<music>']   if arguments['<music>']   else "."
+backup    = arguments['<backup>']  if arguments['<backup>']  else "/mnt/wdtvlivehub/Music"
 
 options['fail-on-warning'] = arguments['--fail-on-warning']
 options['fix'            ] = arguments['--fix']
@@ -55,11 +56,6 @@ options['warning'        ] = not arguments['--quiet']
 
 if music.startswith("/"):
     library = None
-
-if arguments['--cmp']:
-    backup = arguments['<backup>'] if arguments['<backup>'] else "/mnt/wdtvlivehub/Music"
-else:
-    backup = None
 
 if os.path.isfile(music):
     if arguments['--cmp']:
@@ -73,13 +69,10 @@ if os.path.isfile(music):
 
     sys.exit(0)
 
-if arguments['--cmp'] and not os.path.exists(music):
-    os.mkdir(music)
-
-if arguments['--cmp'] and not os.path.exists(backup):
-    os.mkdir(backup)
-
 library = Library(library, music)
+
+if arguments['--backup'] or arguments['--cmp'] or arguments['--restore']:
+    backup = Library(backup, music)
 
 if arguments['--display']:
     library.display()

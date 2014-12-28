@@ -87,8 +87,8 @@ class AudioFile(MuseFile):
                 else:
                     match = AudioFile.withArtistPattern.match(fileArtist)
 
-                    if (not (match and reconcileStrings(match.group(2), dirArtist)) and
-                        not simpleString(dirArtist) == simpleString(fileArtist).replace("_", " ")):
+                    if (not (match and (reconcileStrings(match.group(1), dirArtist) or reconcileStrings(match.group(2), dirArtist)))
+                        and not simpleString(dirArtist) == simpleString(fileArtist).replace("_", " ")):
                         error("Directory artist '%s' differs from file name artist '%s'" % (dirArtist, fileArtist), filePath)
 
         self.album = reconcileStrings(dirAlbum, fileAlbum, default="Unknown")
