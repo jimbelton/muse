@@ -18,8 +18,8 @@ class Library:
         if subdir[0] != '.':
             subdir = "./" + subdir
 
-        for dirPath, subDirs, files in os.walk(subdir):
-            for file in files:
+        for dirPath, subDirs, dirFiles in os.walk(subdir):
+            for file in dirFiles:
                 filePath  = dirPath + "/" + file
 
                 try:
@@ -34,6 +34,7 @@ class Library:
                         warn("Ignoring duplicate file", filePath)
                         continue
 
+                    audioFile.key   = key
                     self.files[key] = audioFile
                     #print filePath
 
@@ -57,66 +58,59 @@ class Library:
                     warn("Skipping invalid MP3 file (error %s)" % str(error), filePath)
                     continue
 
-#                        otherFile = allFiles[key]
-#                        score     = audioFile.isPreferredTo(otherFile)
-#
-#                        if arguments["--noaction"]:
-#                            if score < 0:
-#                                print "%s is prefered to %s by %d points" % (file.filePath, otherFile.filePath, -score)
-#                            elif score > 0:
-#                                print "%s is prefered to %s by %d points" % (otherFile.filePath, file.filePath, -score)
-#
-#                        elif score < 0:
-#                            otherFile.remove()
-#                        elif score > 0:
-#                            file.remove()
-#                        else:
-#                            print "Can't choose between %s and %s (try -fn to see what force would do)" % (ile.filePath, otherFile.filePath)
-#
-#                    else:
-#                        allFiles[key] = audioFile
-#
-#                    if arguments["--metadata"]:
-#                        audioFile.reconcile()
-#
-#                    if backup and not os.path.isfile(backup + relPath + "/" + file):
-#                        if not missingRoot:
-#                            print backup + relPath + " does not contain file " + file
-#
     def getArtists(self):
         return sorted(self.artists.keys())
 
     def getAlbums(self, artist):
         return sorted(self.artists[artist]['albums'].keys())
 
-    def getSongs(self, artist, album):
+    def getTitles(self, artist, album):
         return sorted(self.artists[artist]['albums'][album]['songs'].keys())
 
-    def compare(self, backup):
+    def findSong(self, song):
+        if song.key in self.files:
+            other = self.files[song.key]
+
+
+            if song.compare(other):
+                print "File %s has the same audio contet as %s" % (song.filePath, other.filePath)
+
+            else:
+                print "File %s has the same name as %s but is different" % (song.filePath, other.filePath)
+
+    def findSongsInBackup(self, backup, artist, album):
+        for song in self.artists[artist]['albums'][album]['songs']:
+            backSong = backup.findSong(self.artists[artist]['albums'][album]['songs'][song])
+
+    def diff(self, backup, command='compare'):
         libArtists = self.getArtists()
         bakArtists = backup.getArtists()
 
         while len(libArtists) > 0 or len(bakArtists) > 0:
-            if len(bakArtists) == 0 or libArtists[0] < bakArtists[0]:
-                print "Library artist " + libArtists[0] + " not found in backup"
-                libArtists = libArtists[1:]
+            if len(bakArtists) == 0 or libArtists[-1] > bakArtists[-1]:
+                artist = libArtists.pop()
+                print "Library artist " + artist + " not found in backup"
+
+                for album in self.getAlbums(artist):
+                    self.findSongsInBackup(backup, artist, album)
+
                 continue
 
-            if len(libArtists) == 0 or bakArtists[0] < libArtists[0]:
-                print "Backup artist " + bakArtists[0] + " not found in library"
-                bakArtists = bakArtists[1:]
+            if len(libArtists) == 0 or bakArtists[-1] > libArtists[-1]:
+                artist = bakArtists.pop()
+                print "Backup artist " + artist + " not found in library"
                 continue
 
-            libArtists = libArtists[1:]
-            bakArtists = bakArtists[1:]
+            libArtists.pop()
+            bakArtists.pop()
 
     def display(self):
-        print "%-*s | %-*s | %-*s" % (self.artistMaxLen, "Artist or Group", self.albumMaxLen, "Album", self.titleMaxLen, "Song")
+        print "%-*s | %-*s | %-*s" % (self.artistMaxLen, "Artist or Group", self.albumMaxLen, "Album", self.titleMaxLen, "Title")
         print "%s-+-%s-+-%s" % (self.artistMaxLen * "-", self.albumMaxLen * "-", self.titleMaxLen * "-")
 
         for artist in self.getArtists():
             for album in self.getAlbums(artist):
-                for song in self.getSongs(artist, album):
-                    print "%-*s | %-*s | %-*s" % (self.artistMaxLen, artist, self.albumMaxLen, album, self.titleMaxLen, song)
+                for title in self.getTitles(artist, album):
+                    print "%-*s | %-*s | %-*s" % (self.artistMaxLen, artist, self.albumMaxLen, album, self.titleMaxLen, title)
 
 

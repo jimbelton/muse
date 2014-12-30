@@ -3,7 +3,7 @@
 """muse - Muse Audio File Manager
 
 Usage: muse -b|--backup [-fn] [-a album][-g artist-or-group] [-t title] [[<music>] <backup>]
-       muse -c|--cmp [-q] [[<music>] <backup>]
+       muse -c|--cmp [-efinqv] [[<music>] <backup>]
        muse -d|--display [-efimnqv] [-a album] [-g artist-or-group] [-l library] [-t title] [<music>]
        muse -h|--help
        muse -r|--restore [-l library] [-q] [<backup> [<music>]]
@@ -74,11 +74,16 @@ library = Library(library, music)
 if arguments['--backup'] or arguments['--cmp'] or arguments['--restore']:
     backup = Library(backup, music)
 
+if  arguments['--backup']:
+    library.diff(backup, command='backup')
+
 if arguments['--cmp']:
-    library.compare(backup)
+    library.diff(backup, command='cmp')
 
 elif arguments['--display']:
     library.display()
-    sys.exit(0)
+
+if arguments['--restore']:
+    library.diff(backup, command='restore')
 
 sys.exit(0)

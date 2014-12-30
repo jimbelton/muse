@@ -17,14 +17,12 @@ class AudioFileError(Exception):
         return  "%s: %s" % (self.filePath, self.message)
 
 class AudioFile(MuseFile):
-    splitPattern       = re.compile(r'(.*)/([^/]+?)(\.[^\./]+)?$')
+    splitPattern       = re.compile(r'(.*)/([^/]+?)(?:\.([^\./]+))?$')
     dirPattern         = re.compile(r'(?:\./)?(?:([^/])/)?(?:([^/]+)/)?(?:.+/)?([^/]*)?$')
     filePattern        = re.compile(r'(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:.*-\s+)?(.+)$')
     numericPattern     = re.compile(r'(\d+)(?:\.)?\s*(.*)$')
-    #numericPattern     = re.compile(r'(\d+)\s*(.*)$')
     artistAlbumPattern = re.compile(r'(\S.*\S)\s+\[(.+)\]$')
     withArtistPattern  = re.compile(r'(\S.*\S)\s*&\s*(\S.*\S)$')
-#    artistAlbumPattern = re.compile(r'(.*)\s+(.+)$')
 
     def __init__(self, filePath):
         MuseFile.__init__(self, filePath)
