@@ -37,7 +37,7 @@ def formatMessage(type, message, file, line):
     return "".join(output)
 
 def warn(message, file = None, line = None):
-    if getOption('warning', False):
+    if not getOption('warning', False):
         return
 
     sys.stderr.write(formatMessage("warning", message, file, line))

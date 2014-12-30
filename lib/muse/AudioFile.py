@@ -24,8 +24,8 @@ class AudioFile(MuseFile):
     artistAlbumPattern = re.compile(r'(\S.*\S)\s+\[(.+)\]$')
     withArtistPattern  = re.compile(r'(\S.*\S)\s*&\s*(\S.*\S)$')
 
-    def __init__(self, filePath):
-        MuseFile.__init__(self, filePath)
+    def __init__(self, filePath, rootPath=None):
+        MuseFile.__init__(self, filePath, rootPath)
         self.artist = None
         self.album  = None
         self.md5    = None
@@ -138,17 +138,17 @@ class AudioFile(MuseFile):
         if self.getSize() == other.getSize():
             if self.compareAudio(other):
                 if self.compare(other):
-                    print "Identical files " + self.filePath + " and " + other.filePath
+                    print "Identical files " + self.getPath() + " and " + other.filePath
                 else:
-                    print "Identical audio in files " + self.filePath + " and " + other.filePath
+                    print "Identical audio in files " + self.getPath() + " and " + other.filePath
 
             else:
-                print "Same sized files " + self.filePath + " and " + other.filePath
+                print "Same sized files " + self.getPath() + " and " + other.filePath
 
             return other.score - self.score
 
         else:
-            print "Same named files " + self.filePath + " and " + other.filePath
+            print "Same named files " + self.getPath() + " and " + other.filePath
             return other.score - self.score if getOption('forced', default = False) else 0
 
     trackNumberPattern = re.compile(r'(\d+)$')
@@ -161,38 +161,38 @@ class AudioFile(MuseFile):
 
         if (simpleArtist == None):
             if (self.dirArtist, self.fileArtist, self.frames.get('TPE1')) == (None, None, None):
-                warn("Can't identify an artist", self.filePath)
+                warn("Can't identify an artist", self.getPath())
             else:
-                warn("Conflicting artists (tag %s)" % (self.frames.get('TPE1')), self.filePath)
+                warn("Conflicting artists (tag %s)" % (self.frames.get('TPE1')), self.getPath())
 
             return
 
         if (simpleAlbum == None):
             if (self.dirAlbum, self.fileAlbum, self.frames.get('TALB')) == (None, None, None):
-                warn("Can't identify an album", self.filePath)
+                warn("Can't identify an album", self.getPath())
             else:
-                warn("Conflicting albums (tag %s)" % (self.frames.get('TALB')), self.filePath)
+                warn("Conflicting albums (tag %s)" % (self.frames.get('TALB')), self.getPath())
 
             return
 
         if (simpleTitle == None):
             if (self.fileTitle, self.frames.get('TIT2')) == (None, None, None):
-                warn("Can't identify a title", self.filePath)
+                warn("Can't identify a title", self.getPath())
             else:
-                warn("Conflicting titles (tag %s)" % (self.frames.get('TIT2')), self.filePath)
+                warn("Conflicting titles (tag %s)" % (self.frames.get('TIT2')), self.getPath())
 
             return
 
         if self.dirArtist:
             if self.dirArtist == self.fileArtist:
                 if self.frames.get('TPE1') != self.fileArtist:
-                    print "%s: artist tag %s differs from directory/file artist %s" % (self.filePath, self.frames.get('TPE1'),
+                    print "%s: artist tag %s differs from directory/file artist %s" % (self.getPath(), self.frames.get('TPE1'),
                                                                                        self.fileArtist)
             elif self.dirArtist == self.frames.get('TPE1'):
                 if simpleString(self.dirArtist) == simpleString(self.fileArtist):
                     if takeAction("rename file %s to %s to match directory/tagged artist %s"
-                                  % (self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist), self.dirArtist)):
-                        os.rename(self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist))
+                                  % (self.getPath(), self.getPath().replace(self.fileArtist, self.dirArtist), self.dirArtist)):
+                        os.rename(self.getPath(), self.getPath().replace(self.fileArtist, self.dirArtist))
                 elif self.fileArtist == None:
                     if self.fileName.endswith(self.frames.get('TIT2')):
                         head  = self.fileName[:-len(self.frames.get('TIT2'))].strip()
@@ -202,15 +202,15 @@ class AudioFile(MuseFile):
                             if int(match.group(1)) == self.track:
                                 toPath = "%s/%s - %d - %s.self.dirName"
                                 if takeAction("rename file %s to %s to match directory/tagged artist %s"
-                                              % (self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist), self.dirArtist)):
-                                    os.rename(self.filePath, self.filePath.replace(self.fileArtist, self.dirArtist))
+                                              % (self.getPath(), self.getPath().replace(self.fileArtist, self.dirArtist), self.dirArtist)):
+                                    os.rename(self.getPath(), self.getPath().replace(self.fileArtist, self.dirArtist))
 
 
                         print "'" + head + "'"
                         print ("%s: filename ends with title %s (no file artist; directory/tagged artist %s)"
-                               % (self.filePath, self.frames.get('TIT2'), self.dirArtist))
+                               % (self.getPath(), self.frames.get('TIT2'), self.dirArtist))
                     else:
-                        print "%s: no file artist parsed (directory/tagged artist %s)" % (self.filePath, self.dirArtist)
+                        print "%s: no file artist parsed (directory/tagged artist %s)" % (self.getPath(), self.dirArtist)
                 else:
-                    print "%s: file artist %s differs from directory/tagged artist %s" % (self.filePath, self.fileArtist,
+                    print "%s: file artist %s differs from directory/tagged artist %s" % (self.getPath(), self.fileArtist,
                                                                                           self.dirArtist)

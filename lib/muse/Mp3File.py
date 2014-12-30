@@ -39,7 +39,6 @@ class Mp3File(AudioFile):
     def expectMember(self, description, actual, expectedSet):
         if getOption('warning') and not actual in expectedSet:
             sys.stderr.write("warning: %s(%d): %s was %s but required to be in %s\n"
-
                              % (self.filePath, self.stream.tell(), description, actual, expectedSet))
 
         return actual
@@ -162,7 +161,7 @@ class Mp3File(AudioFile):
             return
 
         self.open()
-        self.md5    = md5.new()
+        self.md5 = md5.new()
 
         while True:
             header = self.read(3, "header tag", {'eof'})

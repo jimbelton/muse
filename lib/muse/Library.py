@@ -7,7 +7,6 @@ from muse.Options import warn
 
 class Library:
     def __init__(self, library, subdir = ".", artistRe = None, albumRe = None, titleRe = None):
-        os.chdir(library)
         self.files        = {}
         self.sizes        = {}
         self.artists      = {}
@@ -18,12 +17,16 @@ class Library:
         if subdir[0] != '.':
             subdir = "./" + subdir
 
+        library = os.path.abspath(library)    # Pass this single reference to all strings to conserve memory
+        curDir  = os.getcwd()
+        os.chdir(library)                     # Keep paths short
+
         for dirPath, subDirs, dirFiles in os.walk(subdir):
             for file in dirFiles:
                 filePath  = dirPath + "/" + file
 
                 try:
-                    audioFile = createAudioFile(filePath)
+                    audioFile = createAudioFile(filePath, rootPath=library)
 
                     if not audioFile:
                         continue
@@ -58,6 +61,8 @@ class Library:
                     warn("Skipping invalid MP3 file (error %s)" % str(error), filePath)
                     continue
 
+        os.chdir(curDir)    # Restore the path for the caller
+
     def getArtists(self):
         return sorted(self.artists.keys())
 
@@ -71,16 +76,21 @@ class Library:
         if song.key in self.files:
             other = self.files[song.key]
 
-
             if song.compare(other):
-                print "File %s has the same audio contet as %s" % (song.filePath, other.filePath)
+                print "File %s has the same audio content as %s" % (song.getPath(), other.getPath())
+                return other
 
             else:
-                print "File %s has the same name as %s but is different" % (song.filePath, other.filePath)
+                warn("File %s has the same name as %s but is different" % (song.getPath(), other.getPath()))
+
+            return None
 
     def findSongsInBackup(self, backup, artist, album):
         for song in self.artists[artist]['albums'][album]['songs']:
             backSong = backup.findSong(self.artists[artist]['albums'][album]['songs'][song])
+
+            #if backSong:
+
 
     def diff(self, backup, command='compare'):
         libArtists = self.getArtists()

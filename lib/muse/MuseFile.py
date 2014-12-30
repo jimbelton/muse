@@ -12,17 +12,24 @@ class MuseFileError(Exception):
         return  "%s(%d): %s" % (self.filePath, self.offset, self.message)
 
 class MuseFile(object):
-    def __init__(self, filePath):
+    def __init__(self, filePath, rootPath=None):
         self.filePath = filePath
+        self.rootPath = rootPath
         self.stream   = None
         self.stat     = None
 
-        if not os.path.isfile(filePath):
-            raise ValueError("MuseFile: '" + filePath + "' is not a file")
+        if not os.path.isfile(self.getPath()):
+            raise ValueError("MuseFile: '%s' is not a file" % self.getPath())
+
+    def getPath(self):
+        if self.filePath[0] == '/' or not self.rootPath:
+            return self.filePath
+
+        return "%s/%s" % (self.rootPath, self.filePath)
 
     def getStat(self):
         if not self.stat:
-            self.stat = os.stat(self.filePath)
+            self.stat = os.stat(self.getPath())
 
         return self.stat
 
@@ -37,13 +44,14 @@ class MuseFile(object):
 
     def open(self):
         if self.stream != None:
-            raise MuseFileError(self.filePath, 0, "Attempt to open file when it's already open")
+            print
+            raise MuseFileError(self.getPath(), 0, "Attempt to open file when it's already open")
 
-        self.stream = open(self.filePath, "rb")
+        self.stream = open(self.getPath(), "rb")
 
     def read(self, length, message, options = set()):
         if (self.stream == None):
-            raise MuseFileError(self.filePath, 0, "Attempt to read file when it's not open")
+            raise MuseFileError(self.getPath(), 0, "Attempt to read file when it's not open")
 
         content = self.stream.read(length)
         actual  = len(content)
@@ -52,12 +60,12 @@ class MuseFile(object):
             return content
 
         if actual > 0:
-            raise MuseFileError(self.filePath, self.stream.tell(), "Partial value at EOF: " + message)
+            raise MuseFileError(self.getPath(), self.stream.tell(), "Partial value at EOF: " + message)
 
         if 'eof' in options:
             return ""
 
-        raise MuseFileError(self.filePath, self.stream.tell(), "EOF: " + message)
+        raise MuseFileError(self.getPath(), self.stream.tell(), "EOF: " + message)
 
     def close(self):
         if self.stream:
@@ -67,4 +75,4 @@ class MuseFile(object):
 
     def remove(self):
         self.close()
-        os.remove(self.filePath)
+        os.remove(self.getPath())

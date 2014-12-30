@@ -9,7 +9,7 @@ extensionPattern  = re.compile(r'.+\.(.+)$')
 ignoredExtensions = {"cue", "db", "gif", "ini", "log", "jpeg", "jpg", "part", "pl", "txt"}
 audioExtensions   = {"flac", "m3u", "m4a", "ogg", "wma"}
 
-def createAudioFile(filePath):
+def createAudioFile(filePath, rootPath=None):
     match = extensionPattern.match(filePath)
 
     if not match:
@@ -18,10 +18,10 @@ def createAudioFile(filePath):
     ext = match.group(1).lower()
 
     if ext == "mp3":
-        return Mp3File(filePath)
+        return Mp3File(filePath, rootPath)
 
     if ext in audioExtensions:
-        return AudioFile(filePath)
+        return AudioFile(filePath, rootPath)
 
     if ext in ignoredExtensions:
         return None
