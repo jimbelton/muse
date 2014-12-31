@@ -8,18 +8,8 @@ def getOption(name, default = None):
 
     return default
 
-def takeAction(action):
-    if getOption('noaction', False):
-        print "Would " + action
-        return False
-
-    if getOption('verbose', False):
-        print "Will now " + action
-
-    return True
-
 def formatMessage(type, message, file, line):
-    output = [type, ": "]
+    output = [type, ": "] if type else []
 
     if file:
         output.append(file)
@@ -36,6 +26,10 @@ def formatMessage(type, message, file, line):
 
     return "".join(output)
 
+def info(message, file = None, line = None):
+    if getOption('verbose', False):
+        print formatMessage(None, message, file, line),
+
 def warn(message, file = None, line = None):
     if not getOption('warning', False):
         return
@@ -50,3 +44,11 @@ def error(message, file = None, line = None):
 
     if not getOption('ignore-errors', False):
         sys.exit(1)
+
+def takeAction(action):
+    if getOption('noaction', False):
+        print "Would " + action
+        return False
+
+    info("Will now " + action)
+    return True

@@ -16,7 +16,7 @@ Options:
     -c --cmp              Compare two files or libraries
     -d --display          Display the contents of a music libary
     -e --fail-on-warning  Treat warnings like errors
-    -f --fix              Fix file naming
+    -f --fix              For display/sync, fix file naming; else make backup like music (backup) or music like backup (restore)
     -i --ignore-errors    Ignore errors (treat them like warnings)
     -g --group group      Name of the artist or group
     -h --help             Show this screen
@@ -69,15 +69,18 @@ if os.path.isfile(music):
 
     sys.exit(0)
 
-library = Library(library, music)
-
 if arguments['--backup'] or arguments['--cmp'] or arguments['--restore']:
-    backup = Library(backup, music)
+    options['fix'] = False    # To fix a library, use the display or sync commands
+    backup         = Library(backup, music)
+
+library        = Library(library, music)
+options['fix'] = arguments['--fix']
 
 if  arguments['--backup']:
     library.diff(backup, command='backup')
 
 if arguments['--cmp']:
+    options['verbose'] = True
     library.diff(backup, command='cmp')
 
 elif arguments['--display']:

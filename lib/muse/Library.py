@@ -3,7 +3,7 @@ import sys
 
 from muse.Factory import createAudioFile
 from muse.Mp3File import Mp3FileError
-from muse.Options import warn
+from muse.Options import info, options, warn, takeAction
 
 class Library:
     def __init__(self, library, subdir = ".", artistRe = None, albumRe = None, titleRe = None):
@@ -76,21 +76,26 @@ class Library:
         if song.key in self.files:
             other = self.files[song.key]
 
-            if song.compare(other):
-                print "File %s has the same audio content as %s" % (song.getPath(), other.getPath())
+            if song.compareAudio(other):
+                info("File %s has the same audio content as %s" % (song.getPath(), other.getPath()))
                 return other
 
             else:
-                warn("File %s has the same name as %s but is different" % (song.getPath(), other.getPath()))
+                warn("File %s has the same name as %s but has different audio" % (song.getPath(), other.getPath()))
 
             return None
 
-    def findSongsInBackup(self, backup, artist, album):
-        for song in self.artists[artist]['albums'][album]['songs']:
-            backSong = backup.findSong(self.artists[artist]['albums'][album]['songs'][song])
+    def newSongsInOther(self, other, artist, album=None, title=None, command='compare'):
+        for album in (album) if album else self.artists[artist]['albums']:
+            for title in (title) if title else self.artists[artist]['albums'][album]['songs']:
+                song      = self.artists[artist]['albums'][album]['songs'][title]
+                otherSong = other.findSong(song)
 
-            #if backSong:
-
+                if otherSong and options['fix']:
+                    if song.compare(otherSong):
+                        if takeAction("move %s to %s" % (otherSong.getPath(), song.getPath())):
+                            otherSong.move(song.filePath)    # Relies on filePath being the relative path
+                            otherSong.syncModTime(song)
 
     def diff(self, backup, command='compare'):
         libArtists = self.getArtists()
@@ -100,10 +105,7 @@ class Library:
             if len(bakArtists) == 0 or libArtists[-1] > bakArtists[-1]:
                 artist = libArtists.pop()
                 print "Library artist " + artist + " not found in backup"
-
-                for album in self.getAlbums(artist):
-                    self.findSongsInBackup(backup, artist, album)
-
+                self.newSongsInOther(backup, artist, command=command)
                 continue
 
             if len(libArtists) == 0 or bakArtists[-1] > libArtists[-1]:

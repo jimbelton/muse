@@ -103,7 +103,7 @@ class AudioFile(MuseFile):
             elif not reconcileStrings(fileAlbum, dirArtist):
                 error("Directory album '%s' differs from file name album '%s'" % (dirAlbum, fileAlbum), filePath)
 
-        newPath = ("%s/%s%s%s%s%s"
+        newPath = ("%s/%s%s%s%s.%s"
                    % (dirName, safeAppend(self.artist, " - ", suppress="Unknown"), safeAppend(self.album, " - ", suppress="Unknown"),
                       safeAppend(self.track, " - "), self.title, fileExt))
 
