@@ -14,9 +14,6 @@ class Library:
         self.albumMaxLen  = len("Album")
         self.titleMaxLen  = len("Song")
 
-        if subdir[0] != '.':
-            subdir = "./" + subdir
-
         library = os.path.abspath(library)    # Pass this single reference to all strings to conserve memory
         curDir  = os.getcwd()
         os.chdir(library)                     # Keep paths short
@@ -93,9 +90,9 @@ class Library:
 
                 if otherSong and options['fix']:
                     if song.compare(otherSong):
-                        if takeAction("move %s to %s" % (otherSong.getPath(), song.getPath())):
+                        if takeAction("move %s to %s" % (otherSong.getPath(), otherSong.getPath(song.filePath))):
                             otherSong.move(song.filePath)    # Relies on filePath being the relative path
-                            otherSong.syncModTime(song)
+                            song.syncModTime(otherSong)
 
     def diff(self, backup, command='compare'):
         libArtists = self.getArtists()

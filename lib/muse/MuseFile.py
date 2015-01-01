@@ -21,11 +21,13 @@ class MuseFile(object):
         if not os.path.isfile(self.getPath()):
             raise ValueError("MuseFile: '%s' is not a file" % self.getPath())
 
-    def getPath(self):
-        if self.filePath[0] == '/' or not self.rootPath:
-            return self.filePath
+    def getPath(self, filePath=None):
+        filePath = filePath if filePath else self.filePath
 
-        return "%s/%s" % (self.rootPath, self.filePath)
+        if filePath[0] == '/' or not self.rootPath:
+            return filePath
+
+        return "%s/%s" % (self.rootPath, filePath)
 
     def getStat(self):
         if not self.stat:
@@ -73,6 +75,19 @@ class MuseFile(object):
 
         self.stream = None
 
+    def move(self, filePath):
+        toPath = self.getPath(filePath)
+        toDir  = os.path.dirname(toPath)
+        print toDir
+
+        if not os.path.exists(toDir):
+            os.makedirs(toDir)
+
+        os.rename(self.getPath(), self.getPath(filePath))
+
     def remove(self):
         self.close()
         os.remove(self.getPath())
+
+    def syncModTime(self, other):
+        os.utime(self.getPath(), (other.getModificationTime(), other.getModificationTime()))
