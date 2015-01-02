@@ -83,8 +83,8 @@ class Library:
             return None
 
     def newSongsInOther(self, other, artist, album=None, title=None, command='compare'):
-        for album in (album) if album else self.artists[artist]['albums']:
-            for title in (title) if title else self.artists[artist]['albums'][album]['songs']:
+        for album in (album,) if album else self.artists[artist]['albums']:
+            for title in (title,) if title else self.artists[artist]['albums'][album]['songs']:
                 song      = self.artists[artist]['albums'][album]['songs'][title]
                 otherSong = other.findSong(song)
 
@@ -99,19 +99,53 @@ class Library:
         bakArtists = backup.getArtists()
 
         while len(libArtists) > 0 or len(bakArtists) > 0:
-            if len(bakArtists) == 0 or libArtists[-1] > bakArtists[-1]:
+            if len(bakArtists) == 0 or (len(libArtists) >0 and libArtists[-1] > bakArtists[-1]):
                 artist = libArtists.pop()
-                print "Library artist " + artist + " not found in backup"
+                info("Library artist %s not found in backup" % artist)
                 self.newSongsInOther(backup, artist, command=command)
                 continue
 
-            if len(libArtists) == 0 or bakArtists[-1] > libArtists[-1]:
+            if len(libArtists) == 0 or (len(bakArtists) > 0 and bakArtists[-1] > libArtists[-1]):
                 artist = bakArtists.pop()
-                print "Backup artist " + artist + " not found in library"
+                info("Backup artist %s not found in library" % artist)
                 continue
 
-            libArtists.pop()
+            artist = libArtists.pop()
             bakArtists.pop()
+            libAlbums = self.getAlbums(artist)
+            bakAlbums = backup.getAlbums(artist)
+
+            while len(libAlbums) > 0 or len(bakAlbums) > 0:
+                if len(bakAlbums) == 0 or (len(libAlbums) > 0 and libAlbums[-1] > bakAlbums[-1]):
+                    album = libAlbums.pop()
+                    info("Library artist %s album %s not found in backup" % (artist, album))
+                    self.newSongsInOther(backup, artist, album, command=command)
+                    continue
+
+                if len(libAlbums) == 0 or (len(bakAlbums) > 0 and bakAlbums[-1] > libAlbums[-1]):
+                    album = bakAlbums.pop()
+                    info("Backup artist %s album %s not found in library" % (artist, album))
+                    continue
+
+                album = libAlbums.pop()
+                bakAlbums.pop()
+                libTitles = self.getTitles(artist, album)
+                bakTitles = backup.getTitles(artist, album)
+
+                while len(libTitles) > 0 or len(bakTitles) > 0:
+                    if len(bakTitles) == 0 or (len(libTitles) > 0 and libTitles[-1] > bakTitles[-1]):
+                        title = libTitles.pop()
+                        info("Library artist %s album %s title %s not found in backup" % (artist, album, title))
+                        self.newSongsInOther(backup, artist, album, title, command=command)
+                        continue
+
+                    if len(libTitles) == 0 or (len(bakTitles) > 0 and bakTitles[-1] > libTitles[-1]):
+                        title = bakTitles.pop()
+                        info("Backup artist %s album %s title %s not found in library" % (artist, album, title))
+                        continue
+
+                    libTitles.pop()
+                    bakTitles.pop()
 
     def display(self):
         print "%-*s | %-*s | %-*s" % (self.artistMaxLen, "Artist or Group", self.albumMaxLen, "Album", self.titleMaxLen, "Title")

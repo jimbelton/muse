@@ -1,5 +1,6 @@
 import filecmp
 import os
+import time
 import re
 
 class MuseFileError(Exception):
@@ -46,7 +47,6 @@ class MuseFile(object):
 
     def open(self):
         if self.stream != None:
-            print
             raise MuseFileError(self.getPath(), 0, "Attempt to open file when it's already open")
 
         self.stream = open(self.getPath(), "rb")
@@ -90,4 +90,5 @@ class MuseFile(object):
         os.remove(self.getPath())
 
     def syncModTime(self, other):
+        print self.getPath() + ":" + time.ctime(self.getModificationTime()) + ":" + time.ctime(other.getModificationTime())
         os.utime(self.getPath(), (other.getModificationTime(), other.getModificationTime()))
