@@ -6,7 +6,7 @@ import sys
 
 from muse.MuseFile        import MuseFile
 from muse.StringFunctions import reconcileStrings, safeAppend, simpleString
-from muse.Options         import error, getOption, takeAction, warn
+from muse.Options         import error, info, getOption, takeAction, warn
 
 class AudioFileError(Exception):
     def __init__(self, filePath, message):
@@ -92,7 +92,7 @@ class AudioFile(MuseFile):
         self.album = reconcileStrings(dirAlbum, fileAlbum, default="Unknown")
 
         if self.album == "Unknown":
-            warn("Failed to determine an album from the filepath", filePath)
+            info("Failed to determine an album from the filepath", filePath)    # Too common to warn on
 
         elif self.album == None:
             self.album = dirAlbum
