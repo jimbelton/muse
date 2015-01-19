@@ -127,10 +127,12 @@ class AudioFile(MuseFile):
         other.readFile()
         return self.md5.digest() == other.md5.digest()
 
-    def compareAudio(self, other):
+    def getAudioMd5(self):
         self.readFile()
-        other.readFile()
-        return self.audioMd5.digest() == other.audioMd5.digest()
+        return self.audioMd5.digest()
+
+    def compareAudio(self, other):
+        return self.getAudioMd5() == other.getAudioMd5()
 
     def isPreferredTo(self, other):
         #print "%s %s %s %s %s" % (self.dirLetter, self.dirArtist, self.dirAlbum, self.fileArtist, self.fileTitle)
@@ -145,11 +147,11 @@ class AudioFile(MuseFile):
             else:
                 print "Same sized files " + self.getPath() + " and " + other.filePath
 
-            return other.score - self.score
+            return 0 # other.score - self.score
 
         else:
             print "Same named files " + self.getPath() + " and " + other.filePath
-            return other.score - self.score if getOption('forced', default = False) else 0
+            return 0 # other.score - self.score if getOption('forced', default = False) else 0
 
     trackNumberPattern = re.compile(r'(\d+)$')
 

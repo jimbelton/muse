@@ -7,8 +7,9 @@ from muse.Options import info, options, warn, takeAction
 
 class Library:
     def __init__(self, library, subdir = ".", artistRe = None, albumRe = None, titleRe = None):
-        self.files        = {}
-        self.sizes        = {}
+        self.files        = {}    # Songs indexed by filename
+        self.audioMd5s    = {}    # Songs indexed by MD5
+        self.sizes        = {}    # Lists of songs, indexed by size (only until audio MD5s are generated)
         self.artists      = {}
         self.artistMaxLen = len("Artist or Group")
         self.albumMaxLen  = len("Album")
@@ -28,14 +29,27 @@ class Library:
                     if not audioFile:
                         continue
 
-                    key = file.lower()
+                    key           = file.lower()    # The lower case file name must be a unique key in the library
+                    audioFile.key = key
+
+                    # Only check like sized files for dups while constructing if run in 'fix' mode (slows loading a lot)
+                    #
+                    if options['fix']:
+                        other         = self.findSong(audioFile)
+
+                        if other:
+                            warn("Ignoring file %s because its audio is identical to %s" % (filePath, other.filePath))
+                            continue
 
                     if key in self.files:
-                        warn("Ignoring duplicate file", filePath)
+                        warn("Ignoring file %s because it's name duplicates %s" % (filePath, self.files[key].filePath))
                         continue
 
-                    audioFile.key   = key
-                    self.files[key] = audioFile
+                    self.files[key]  = audioFile
+                    size             = audioFile.getSize()
+                    self.sizes[size] = self.sizes[size] if size in self.sizes else []
+                    self.sizes[size].append(audioFile)
+
                     #print filePath
 
                     artist = audioFile.artist if audioFile.artist else "Unknown"
@@ -74,13 +88,30 @@ class Library:
             other = self.files[song.key]
 
             if song.compareAudio(other):
-                info("File %s has the same audio content as %s" % (song.getPath(), other.getPath()))
                 return other
 
             else:
                 warn("File %s has the same name as %s but has different audio" % (song.getPath(), other.getPath()))
 
-            return None
+        size = song.getSize()
+
+        if size in self.sizes:
+            audioMd5 = song.getAudioMd5()
+
+            if audioMd5 in self.audioMd5s:
+                return self.audioMd5[audioMd5]
+
+            sizeList = self.sizes[size]
+
+            while len(sizeList) > 0:
+                other                         = sizeList.pop()
+                otherAudioMd5                 = other.getAudioMd5()
+                self.audioMd5s[otherAudioMd5] = other
+
+                if audioMd5 == otherAudioMd5:
+                    return other
+
+        return None
 
     def newSongsInOther(self, other, artist, album=None, title=None, command='compare'):
         for album in (album,) if album else self.artists[artist]['albums']:
@@ -88,11 +119,14 @@ class Library:
                 song      = self.artists[artist]['albums'][album]['songs'][title]
                 otherSong = other.findSong(song)
 
-                if otherSong and options['fix']:
+                if otherSong:
                     if song.compare(otherSong):
-                        if takeAction("move %s to %s" % (otherSong.getPath(), otherSong.getPath(song.filePath))):
+                        if options['fix'] and takeAction("move %s to %s" % (otherSong.getPath(), otherSong.getPath(song.filePath))):
                             otherSong.move(song.filePath)    # Relies on filePath being the relative path
                             song.syncModTime(otherSong)
+                            return
+
+                    info("Song %s has the same audio as song %s" %(song.getPath(), otherSong.getPath()));
 
     def diff(self, backup, command='compare'):
         libArtists = self.getArtists()

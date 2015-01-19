@@ -30,16 +30,14 @@ id3v2EncodingToPythonEncoding = ("iso-8859-1", "utf_16", "utf_16_be", "utf_8")
 class Mp3File(AudioFile):
 
     def expect(self, description, actual, expected):
-        if getOption('warning') and actual != expected:
-            sys.stderr.write("warning: %s(%d): %s was %s but expected %s\n"
-                             % (self.filePath, self.stream.tell(), description, actual, expected))
+        if actual != expected:
+            warn("%s was %s but expected %s" % (description, actual, expected), self.filePath, self.stream.tell())
 
         return actual
 
     def expectMember(self, description, actual, expectedSet):
-        if getOption('warning') and not actual in expectedSet:
-            sys.stderr.write("warning: %s(%d): %s was %s but required to be in %s\n"
-                             % (self.filePath, self.stream.tell(), description, actual, expectedSet))
+        if actual not in expectedSet:
+            warn("%s was %s but required to be in %s" % (description, actual, expectedSet), self.filePath, self.stream.tell())
 
         return actual
 
