@@ -2,6 +2,9 @@ import filecmp
 import os
 import time
 import re
+import shutil
+
+from muse.Options import warn
 
 class MuseFileError(Exception):
     def __init__(self, filePath, offset, message):
@@ -28,7 +31,7 @@ class MuseFile(object):
         if filePath[0] == '/' or not self.rootPath:
             return filePath
 
-        return "%s/%s" % (self.rootPath, filePath)
+        return os.path.join(self.rootPath, filePath)
 
     def getStat(self):
         if not self.stat:
@@ -75,10 +78,22 @@ class MuseFile(object):
 
         self.stream = None
 
+    def copy(self, toPath):
+        toDir  = os.path.dirname(toPath)
+
+        if not os.path.exists(toDir):
+            os.makedirs(toDir)
+
+        shutil.copyfile(self.getPath(), toPath)
+
+        try:
+            shutil.copystat(self.getPath(), toPath)
+        except OSError:
+            warn("Unable to set the modification time", file=toPath)
+
     def move(self, filePath):
         toPath = self.getPath(filePath)
         toDir  = os.path.dirname(toPath)
-        print toDir
 
         if not os.path.exists(toDir):
             os.makedirs(toDir)
@@ -90,5 +105,5 @@ class MuseFile(object):
         os.remove(self.getPath())
 
     def syncModTime(self, other):
-        print self.getPath() + ":" + time.ctime(self.getModificationTime()) + ":" + time.ctime(other.getModificationTime())
+        #print self.getPath() + ":" + time.ctime(self.getModificationTime()) + ":" + time.ctime(other.getModificationTime())
         os.utime(self.getPath(), (other.getModificationTime(), other.getModificationTime()))

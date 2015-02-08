@@ -2,11 +2,11 @@
 
 """muse - Muse Audio File Manager
 
-Usage: muse -b|--backup [-fn] [-a album][-g artist-or-group] [-t title] [[<music>] <backup>]
+Usage: muse -b|--backup [-fnv] [-a album][-g artist-or-group] [-t title] [[<music>] <backup>]
        muse -c|--cmp [-efinqv] [[<music>] <backup>]
        muse -d|--display [-efimnqv] [-a album] [-g artist-or-group] [-l library] [-t title] [<music>]
        muse -h|--help
-       muse -r|--restore [-l library] [-q] [<backup> [<music>]]
+       muse -r|--restore [-nqv] [-l library] [<backup> [<music>]]
        muse -s|--sync [-f|-n][-l library] [-q] [<music>]
        muse --version
 

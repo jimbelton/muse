@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 
 from muse.Factory import createAudioFile
@@ -14,10 +15,10 @@ class Library:
         self.artistMaxLen = len("Artist or Group")
         self.albumMaxLen  = len("Album")
         self.titleMaxLen  = len("Song")
+        self.library      = os.path.abspath(library)    # Pass this single reference to all songs to conserve memory
 
-        library = os.path.abspath(library)    # Pass this single reference to all strings to conserve memory
-        curDir  = os.getcwd()
-        os.chdir(library)                     # Keep paths short
+        curDir = os.getcwd()
+        os.chdir(library)    # Keep paths short
 
         for dirPath, subDirs, dirFiles in os.walk(subdir):
             for file in dirFiles:
@@ -128,6 +129,13 @@ class Library:
 
                     info("Song %s has the same audio as song %s" %(song.getPath(), otherSong.getPath()));
 
+                elif command == "backup" or command == "restore":
+                    otherPath = os.path.join(other.library, song.filePath)
+
+                    if takeAction("%s %s to %s" % (command, song.getPath(), otherPath)):
+                        song.copy(otherPath)
+                        #other.addSong(otherPath)    # Need to factor this function
+
     def diff(self, backup, command='compare'):
         libArtists = self.getArtists()
         bakArtists = backup.getArtists()
@@ -189,5 +197,3 @@ class Library:
             for album in self.getAlbums(artist):
                 for title in self.getTitles(artist, album):
                     print "%-*s | %-*s | %-*s" % (self.artistMaxLen, artist, self.albumMaxLen, album, self.titleMaxLen, title)
-
-
