@@ -1,13 +1,25 @@
 import filecmp
 import os
 import re
+import string
+import sys
 
-articlePattern = re.compile(r'(?:(?:a|an|the) )?(.+)')
+articlePattern = re.compile(r'(?:(?:a|an|the) )?(.+?)(?:, (?:a|an|the))?$')
+latinToAscii   = {ord('\xD6'): u"O", ord('\xF6'): u"o"}
 
 def simpleString(string):
-    '''trim leading and trailing space, replace runs of whitespace with single spaces, lower case and remove leading article'''
+    '''trim leading and trailing space, replace whitespaces with single spaces, lower case and remove leading/trailing article'''
+    if string == None:
+        return None
 
-    return articlePattern.match(" ".join(string.split()).lower()).group(1) if string else None
+    alreadyUnicode = isinstance(string, unicode)
+    uniString      = string if alreadyUnicode else string.decode('utf8')
+    uniString      = uniString.translate(latinToAscii)
+
+    if alreadyUnicode:
+        return articlePattern.match(u' '.join(uniString.split()).lower()).group(1).replace(" & ", " and ")
+
+    return articlePattern.match(' '.join(uniString.decode('utf8').split()).lower()).group(1).replace(" & ", " and ").encode('utf8')
 
 def reconcileStrings(*strings, **options):
     '''if all simplified strings are the same, returns the first string, unsimplified;

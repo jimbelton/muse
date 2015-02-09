@@ -18,10 +18,11 @@ class AudioFileError(Exception):
 
 class AudioFile(MuseFile):
     splitPattern       = re.compile(r'(.*)/([^/]+?)(?:\.([^\./]+))?$')
-    dirPattern         = re.compile(r'(?:\./)?(?:([^/])/)?(?:([^/]+)/)?(?:.+/)?([^/]*)?$')
+    dirPattern         = re.compile(r'(?:\./)?(?:([^/])/)?(?:([^/]+)/)?(?:.+/)?([^/]+)?$')
     filePattern        = re.compile(r'(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:([^-]+?)\s*-\s+)?(?:.*-\s+)?(.+)$')
     numericPattern     = re.compile(r'(\d+)(?:\.)?\s*(.*)$')
     artistAlbumPattern = re.compile(r'(\S.*\S)\s+\[(.+)\]$')
+    yearAlbumPattern   = re.compile(r'\((\d\d\d\d)\)\s+(\S.*\S)$')
     withArtistPattern  = re.compile(r'(\S.*\S)\s*&\s*(\S.*\S)$')
 
     def __init__(self, filePath, rootPath=None):
@@ -74,8 +75,9 @@ class AudioFile(MuseFile):
             match       = AudioFile.numericPattern.match(fileArtist)
 
             if match and self.track == None:
-                self.track  = match.group(1)
-                fileArtist  = match.group(2)
+                self.track = match.group(1)
+                fileArtist = match.group(2)
+                fileAlbum  = None
 
             if fileArtist:
                 match = AudioFile.artistAlbumPattern.match(fileArtist)
@@ -100,8 +102,15 @@ class AudioFile(MuseFile):
             if fileArtist.isdigit() and reconcileStrings(fileAlbum, dirArtist):
                 self.track = fileArtist
 
-            elif not reconcileStrings(fileAlbum, dirArtist):
-                error("Directory album '%s' differs from file name album '%s'" % (dirAlbum, fileAlbum), filePath)
+            elif not reconcileStrings(fileAlbum, dirAlbum):
+                match = AudioFile.yearAlbumPattern.match(dirAlbum)
+
+                if match and reconcileStrings(fileAlbum, match.group(2)):
+                    self.year  = match.group(1)
+                    self.album = match.group(2)
+
+                else:
+                    error("Directory album '%s' differs from file name album '%s'" % (dirAlbum, fileAlbum), filePath)
 
         newPath = ("%s/%s%s%s%s.%s"
                    % (dirName, safeAppend(self.artist, " - ", suppress="Unknown"), safeAppend(self.album, " - ", suppress="Unknown"),

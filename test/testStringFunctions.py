@@ -10,13 +10,16 @@ from muse.StringFunctions import simpleString, reconcileStrings, safeAppend
 
 class TestStringFunctions(unittest.TestCase):
     def testSimpleString(self):
-        self.assertEquals("hello, world", simpleString("  Hello,  world  "))
-        self.assertEquals(None,           simpleString(None))
+        self.assertEquals("hello, world",     simpleString("  Hello,  world  "))
+        self.assertEquals(None,               simpleString(None))
+        self.assertEquals("blue oyster cult", simpleString(u"Blue \xD6yster Cult".encode('utf8')))
+        self.assertEquals("sonny and cher",   simpleString("Sonny & Cher"))
 
     def testReconcileStrings(self):
-        self.assertEquals("Beatles", reconcileStrings("Beatles", "The Beatles",   None))
-        self.assertEquals(None,      reconcileStrings("The Who", "The Guess Who", None))
-        self.assertEquals("Unknown", reconcileStrings(None,      None,            default = "Unknown"))
+        self.assertEquals("Beatles",    reconcileStrings("Beatles",    "The Beatles",     None))
+        self.assertEquals(None,         reconcileStrings("The Who",    "The Guess Who",   None))
+        self.assertEquals("Unknown",    reconcileStrings(None,         None,              default = "Unknown"))
+        self.assertEquals("Black Keys", reconcileStrings("Black Keys", "Black Keys, The", None))
 
     def testSafeAppend(self):
         self.assertEquals("A - ", safeAppend("A",  " - "))

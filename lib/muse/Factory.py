@@ -4,9 +4,10 @@ import re
 
 from muse.AudioFile import AudioFile
 from muse.Mp3File   import Mp3File
+from muse.Options   import warn
 
 extensionPattern  = re.compile(r'.+\.(.+)$')
-ignoredExtensions = {"cue", "db", "gif", "ini", "log", "jpeg", "jpg", "part", "pl", "txt"}
+ignoredExtensions = {"cue", "db", "gif", "ini", "log", "jpeg", "jpg", "part", "pl", "png", "txt"}
 audioExtensions   = {"flac", "m3u", "m4a", "ogg", "wma"}
 
 def createAudioFile(filePath, rootPath=None):
@@ -26,6 +27,6 @@ def createAudioFile(filePath, rootPath=None):
     if ext in ignoredExtensions:
         return None
 
-    sys.stderr.writer("muse.createAudioFile: warning: Ignoring unknown file extension '%s' in file %s" % (ext, filePath))
+    warn("muse.createAudioFile: warning: Ignoring unknown file extension '%s' in file %s" % (ext, filePath))
     ignoredExtensions.add(ext)
     return None
