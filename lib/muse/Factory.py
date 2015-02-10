@@ -7,8 +7,8 @@ from muse.Mp3File   import Mp3File
 from muse.Options   import warn
 
 extensionPattern  = re.compile(r'.+\.(.+)$')
-ignoredExtensions = {"cue", "db", "gif", "ini", "log", "jpeg", "jpg", "part", "pl", "png", "txt"}
-audioExtensions   = {"flac", "m3u", "m4a", "ogg", "wma"}
+ignoredExtensions = {"cue", "db", "gif", "ini", "log", "jpeg", "jpg", "m3u", "part", "pl", "png", "sfv", "txt"}
+audioExtensions   = {"flac", "m4a", "ogg", "wma"}
 
 def createAudioFile(filePath, rootPath=None):
     match = extensionPattern.match(filePath)

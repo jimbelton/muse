@@ -13,13 +13,17 @@ def simpleString(string):
         return None
 
     alreadyUnicode = isinstance(string, unicode)
-    uniString      = string if alreadyUnicode else string.decode('utf8')
-    uniString      = uniString.translate(latinToAscii)
+
+    if not alreadyUnicode:
+        string = string.decode('utf8')
+
+    string = string.translate(latinToAscii)
 
     if alreadyUnicode:
-        return articlePattern.match(u' '.join(uniString.split()).lower()).group(1).replace(" & ", " and ")
+        return articlePattern.match(u' '.join(string.split()).lower()).group(1).replace(" & ", " and ").replace(", and ", " and ")
 
-    return articlePattern.match(' '.join(uniString.decode('utf8').split()).lower()).group(1).replace(" & ", " and ").encode('utf8')
+    match = articlePattern.match(' '.join(string.encode('utf8').split()).lower())
+    return match.group(1).replace(" & ", " and ").replace(", and ", " and ")
 
 def reconcileStrings(*strings, **options):
     '''if all simplified strings are the same, returns the first string, unsimplified;

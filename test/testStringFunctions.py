@@ -14,6 +14,7 @@ class TestStringFunctions(unittest.TestCase):
         self.assertEquals(None,               simpleString(None))
         self.assertEquals("blue oyster cult", simpleString(u"Blue \xD6yster Cult".encode('utf8')))
         self.assertEquals("sonny and cher",   simpleString("Sonny & Cher"))
+        self.assertEquals("c, s, n and y",    simpleString("C, S, N, & Y"))
 
     def testReconcileStrings(self):
         self.assertEquals("Beatles",    reconcileStrings("Beatles",    "The Beatles",     None))
